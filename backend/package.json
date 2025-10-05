@@ -1,0 +1,24 @@
+{
+  "name": "p2p-chat-root-peer-poc",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "P2P Chat Root Peer - PoC Version",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "b4a": "^1.7.3",
+    "corestore": "^6.8.5",
+    "hypercore-crypto": "^3.4.0",
+    "hyperswarm": "^4.7.16"
+  },
+  "keywords": [
+    "p2p",
+    "chat",
+    "poc",
+    "modular"
+  ],
+  "license": "MIT"
+}
