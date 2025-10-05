@@ -29,43 +29,102 @@ A proof-of-concept peer-to-peer encrypted chat application built with React Nati
 
 ### Prerequisites
 
-- Node.js 18+
-- React Native development environment
-- iOS Simulator or Android Emulator
+- **Node.js 18+** (recommended: Node.js 22.x via nvm)
+- **Yarn 3.6.4** (or npm as alternative)
+- **React Native development environment**
+  - **iOS**: Xcode, CocoaPods
+  - **Android**: Android Studio, Android SDK
+- **iOS Simulator or Android Emulator**
+
+### Environment Setup
+
+1. **Install nvm (Node Version Manager)**:
+```bash
+# Install nvm
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+
+# Add to ~/.zshrc
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# Reload shell configuration
+source ~/.zshrc
+
+# Install Node.js
+nvm install 22
+nvm use 22
+```
+
+2. **Create system-wide node symlink** (for Xcode):
+```bash
+sudo ln -sf "$(which node)" /usr/local/bin/node
+```
+
+3. **Install Yarn** (if not already installed):
+```bash
+npm install -g yarn
+```
+
+4. **Install CocoaPods** (for iOS):
+```bash
+# Install Homebrew if not installed
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install CocoaPods
+brew install cocoapods
+```
 
 ### Installation
 
-1. **Install dependencies**:
+1. **Install frontend dependencies**:
 ```bash
-npm install
+yarn install
 ```
 
-2. **Verify versions**:
+2. **Install iOS pods**:
 ```bash
-npm run verify-versions
+cd ios
+pod install
+cd ..
 ```
 
-3. **Start Metro bundler**:
+3. **Verify versions**:
 ```bash
-npm start
-```
-
-4. **Run on iOS**:
-```bash
-npm run ios
-```
-
-5. **Run on Android**:
-```bash
-npm run android
+yarn verify-versions
 ```
 
 ### Backend Setup
 
+1. **Install backend dependencies**:
 ```bash
 cd backend
-npm install
-npm start
+yarn install
+cd ..
+```
+
+2. **Start the root peer backend**:
+```bash
+cd backend
+source ~/.nvm/nvm.sh && node server.js &
+cd ..
+```
+
+### Running the App
+
+1. **Start Metro bundler**:
+```bash
+yarn start
+```
+
+2. **Run on iOS** (in a new terminal):
+```bash
+yarn ios
+```
+
+3. **Run on Android** (in a new terminal):
+```bash
+yarn android
 ```
 
 ## 📖 Usage
@@ -121,17 +180,24 @@ npm start
 ### Frontend
 - React Native 0.74.1
 - React 18.2.0
-- React Navigation
-- Hyperswarm (P2P networking)
-- libsodium-wrappers (encryption)
+- React Navigation (Stack Navigator)
+- Hyperswarm 4.14.0+ (P2P networking)
+- libsodium-wrappers 0.7.15 (encryption)
 - AsyncStorage (persistence)
+- react-native-gesture-handler (navigation gestures)
 - b4a (Buffer implementation optimized for React Native)
+- Node.js polyfills (buffer, process, events, stream, util)
 
 ### Backend
 - Node.js 18+
 - Hyperswarm
 - Hypercore (message storage)
 - Corestore (data management)
+
+### React Native Adaptations
+- Custom Metro resolver for sodium-native compatibility
+- Polyfills for Node.js built-in modules
+- libsodium-wrappers shim for native module compatibility
 
 ## 📝 Version Requirements
 
@@ -180,10 +246,29 @@ npm test
 
 Enable verbose logging by checking the console logs in the app.
 
+### Metro Bundler
+
+The project uses a custom Metro configuration to handle React Native-incompatible Node.js modules:
+
+- **Custom resolver**: Intercepts `sodium-native` and `sodium-universal` requires
+- **Polyfills**: Provides Node.js built-in modules (buffer, process, events, stream, util)
+- **Shim layer**: Maps native modules to React Native-compatible alternatives
+
+If you encounter module resolution issues, try:
+```bash
+# Clear Metro cache
+yarn start --reset-cache
+
+# Clean Xcode build
+cd ios
+xcodebuild clean
+cd ..
+```
+
 ### Testing P2P Connectivity
 
 1. Start the root peer backend
-2. Launch two app instances
+2. Launch two app instances (simulator + physical device, or two simulators)
 3. Create a room in instance 1
 4. Join with the room key in instance 2
 5. Send messages and verify delivery
