@@ -935,6 +935,27 @@ PODS:
   - React-Mapbuffer (0.74.1):
     - glog
     - React-debug
+  - "react-native-bare-kit (0.5.6+7ee1dd)":
+    - DoubleConversion
+    - glog
+    - hermes-engine
+    - RCT-Folly (= 2024.01.01.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Codegen
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
   - react-native-get-random-values (1.11.0):
     - React-Core
   - react-native-safe-area-context (4.14.1):
@@ -1251,6 +1272,7 @@ DEPENDENCIES:
   - React-jsitracing (from `../node_modules/react-native/ReactCommon/hermes/executor/`)
   - React-logger (from `../node_modules/react-native/ReactCommon/logger`)
   - React-Mapbuffer (from `../node_modules/react-native/ReactCommon`)
+  - react-native-bare-kit (from `../node_modules/react-native-bare-kit`)
   - react-native-get-random-values (from `../node_modules/react-native-get-random-values`)
   - react-native-safe-area-context (from `../node_modules/react-native-safe-area-context`)
   - React-nativeconfig (from `../node_modules/react-native/ReactCommon`)
@@ -1348,6 +1370,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/logger"
   React-Mapbuffer:
     :path: "../node_modules/react-native/ReactCommon"
+  react-native-bare-kit:
+    :path: "../node_modules/react-native-bare-kit"
   react-native-get-random-values:
     :path: "../node_modules/react-native-get-random-values"
   react-native-safe-area-context:
@@ -1440,6 +1464,7 @@ SPEC CHECKSUMS:
   React-jsitracing: dd0e541a34027b3ab668ad94cf268482ad6f82fb
   React-logger: 6070f362a1657bb53335eb1fc903d3f49fd79842
   React-Mapbuffer: 2c95cbabc3d75a17747452381e998c35208ea3ee
+  react-native-bare-kit: a64410aca6779c79feebe3cc9b1ee3cc5b9f7e2d
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
   react-native-safe-area-context: 758e894ca5a9bd1868d2a9cfbca7326a2b6bf9dc
   React-nativeconfig: b0073a590774e8b35192fead188a36d1dca23dec

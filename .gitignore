@@ -55,6 +55,9 @@ yarn-error.log
 # Bundle artifact
 *.jsbundle
 
+# Bare worklet bundle (regenerate with yarn bundle:worklet)
+src/network/worklet/app.bundle.mjs
+
 # Ruby / CocoaPods
 **/Pods/
 /vendor/bundle/
