@@ -1,8 +1,18 @@
-# Why Hyperdht is Not Supported in React Native
+# Why Hyperdht is Not Supported in React Native (And How to Work Around It)
 
-## Executive Summary
+## ⚠️ UPDATE: There IS a Solution!
 
-**Hyperdht** (used by Hyperswarm for P2P networking) **fundamentally cannot work in React Native** because it requires UDP socket access, which is not available in mobile JavaScript environments. This is not a limitation we can fix with polyfills or shims—it's an architectural constraint of mobile platforms.
+**See [BARE_KIT_SOLUTION.md](./BARE_KIT_SOLUTION.md) for how to run Hyperswarm in React Native using `react-native-bare-kit`!**
+
+The bitcoin-tribe project successfully uses Hyperswarm in React Native by running it in a **Bare worklet** (native runtime) that communicates with React Native via IPC. This document explains why the standard approach doesn't work, but Bare Kit provides a native solution.
+
+---
+
+## Executive Summary (Standard React Native)
+
+**Hyperdht** (used by Hyperswarm for P2P networking) **fundamentally cannot work in standard React Native** because it requires UDP socket access, which is not available in mobile JavaScript environments. This is not a limitation we can fix with polyfills or shims—it's an architectural constraint of mobile platforms.
+
+**However**, using `react-native-bare-kit`, you can run Hyperswarm in a native worklet with full Node.js compatibility. See [BARE_KIT_SOLUTION.md](./BARE_KIT_SOLUTION.md) for details.
 
 ---
 
@@ -132,9 +142,58 @@ socket.send(msg, offset, length, port, address); // ❌ Fails
 
 ---
 
+## Solutions Comparison
+
+| Solution | True P2P? | Backend Required? | Complexity | Bundle Size | Status |
+|----------|-----------|-------------------|------------|-------------|--------|
+| **Bare Kit** ⭐ | ✅ Yes | ❌ No | Medium | Large | **Recommended** |
+| WebSocket Bridge | ❌ No | ✅ Yes | Low | Small | Alternative |
+| WebRTC | ✅ Yes | ⚠️ For signaling | High | Medium | Alternative |
+| Native UDP Module | ✅ Yes | ❌ No | Very High | Small | Not recommended |
+
+**Our Recommendation: Bare Kit** - Proven, production-ready, and enables true P2P with Hyperswarm.
+
+---
+
 ## Solutions and Alternatives
 
-### ✅ Solution 1: **WebSocket Bridge Architecture** (Recommended)
+### ⭐ Solution 0: **Bare Kit with Native Worklet** (RECOMMENDED ✨)
+
+Use `react-native-bare-kit` to run Hyperswarm in a native worklet:
+- **Bare Worklet (Native Runtime)**: Runs Hyperswarm with full UDP access
+- **React Native App**: Communicates with worklet via IPC/RPC
+- **True P2P on Mobile**: No backend server required!
+
+**See [BARE_KIT_SOLUTION.md](./BARE_KIT_SOLUTION.md) for complete implementation guide.**
+
+```
+┌─────────────┐              ┌──────────────┐
+│  RN App     │◄──── IPC ────►│ Bare Worklet │
+│  (UI/UX)    │   (bare-rpc)  │ (Hyperswarm) │
+└─────────────┘               └──────┬───────┘
+                                     │
+                              Hyperswarm P2P
+                                     │
+                              ┌──────┴──────┐
+                              │   DHT       │
+                              │   Network   │
+                              └─────────────┘
+```
+
+**Pros:**
+- True P2P between mobile devices
+- No backend server required
+- Full Hyperswarm functionality
+- Native performance
+
+**Cons:**
+- Larger app bundle size (~238 MB for bare-kit)
+- Additional complexity (managing two runtimes)
+- Newer technology (smaller community)
+
+---
+
+### ✅ Solution 1: **WebSocket Bridge Architecture** (Alternative - Simpler Setup)
 
 Use a **hybrid architecture**:
 - **Backend (Node.js)**: Runs Hyperswarm for true P2P
@@ -166,7 +225,7 @@ Use a **hybrid architecture**:
 
 ---
 
-### ✅ Solution 2: **WebRTC Data Channels**
+### ✅ Solution 2: **WebRTC Data Channels** (Alternative - Industry Standard)
 
 Use WebRTC for true peer-to-peer connections:
 - **Signaling server** (can be your backend) helps peers discover each other
@@ -241,7 +300,7 @@ You *could* create a native module that exposes UDP sockets to React Native:
 Your current architecture uses:
 ```typescript
 // src/network/NetworkManager.ts
-import Hyperswarm from 'hyperswarm';  // ❌ Won't work in React Native
+import Hyperswarm from 'hyperswarm';  // ❌ Won't work in standard React Native
 
 // backend/ChatRootPeer.ts
 import Hyperswarm from 'hyperswarm';  // ✅ Works in Node.js backend
@@ -249,25 +308,77 @@ import Hyperswarm from 'hyperswarm';  // ✅ Works in Node.js backend
 
 **You have two codebases:**
 1. **Backend (Node.js)** - Can use Hyperswarm ✅
-2. **Mobile App (React Native)** - Cannot use Hyperswarm ❌
+2. **Mobile App (React Native)** - Cannot use Hyperswarm in standard way ❌
 
-**The solution:** Keep Hyperswarm in the backend, use WebSocket for mobile clients.
+**The recommended solution:** Use Bare Kit to run Hyperswarm in a native worklet on mobile! 🎉
+
+With Bare Kit, your mobile app can:
+- Run Hyperswarm directly (in a worklet)
+- Have true P2P networking
+- Work offline without backend
+- Connect directly to other peers
+
+**Alternative solution:** Keep Hyperswarm in the backend, use WebSocket to connect mobile clients (hybrid approach).
 
 ---
 
 ## Implementation Recommendation
 
-Based on your project structure, I recommend:
+Based on your project structure and the proven bitcoin-tribe implementation, **we recommend Solution 0: Bare Kit** for true P2P functionality.
 
-### Phase 1: **WebSocket Bridge** (Quick Win)
+### ⭐ Recommended: **Bare Kit Implementation** (Best for True P2P)
+
+**Why this is the best choice:**
+- ✅ **True peer-to-peer** - No backend dependency for P2P networking
+- ✅ **Proven solution** - Successfully used in production by bitcoin-tribe
+- ✅ **Full Hyperswarm** - Complete feature set, no compromises
+- ✅ **Native performance** - Direct UDP socket access
+- ✅ **Future-proof** - Built by Holepunch team specifically for this use case
+
+**Implementation steps:**
+1. Follow [IMPLEMENTATION_GUIDE_BARE_KIT.md](./IMPLEMENTATION_GUIDE_BARE_KIT.md)
+2. Install `react-native-bare-kit` and dependencies
+3. Create worklet with Hyperswarm code
+4. Generate bundle with `bare-pack`
+5. Create PeerManager for React Native integration
+6. Test on iOS and Android
+
+**When to choose this:**
+- You want true P2P mobile networking
+- You're okay with larger bundle size (~238 MB)
+- You want to avoid backend server costs/complexity
+- You need offline-capable P2P functionality
+
+---
+
+### Alternative: **WebSocket Bridge** (Quick Start, Requires Backend)
+
+If you need a faster implementation or want to avoid the Bare Kit complexity initially:
+
 1. Add WebSocket server to your backend
 2. Modify `NetworkManager.ts` to use WebSocket instead of Hyperswarm
 3. Backend bridges messages between WebSocket clients and Hyperswarm peers
 
-### Phase 2: **WebRTC P2P** (Optional Enhancement)
+**When to choose this:**
+- You need a working solution immediately
+- You already have backend infrastructure
+- Bundle size is critical
+- You're okay with backend dependency
+
+---
+
+### Alternative: **WebRTC P2P** (Complex Setup)
+
+For direct P2P without Bare Kit:
+
 1. Add WebRTC signaling to backend
 2. Use `react-native-webrtc` for direct mobile-to-mobile connections
 3. Backend only used for initial peer discovery
+
+**When to choose this:**
+- You want P2P but can't use Bare Kit
+- You need audio/video capabilities anyway
+- You have WebRTC expertise
 
 ---
 
@@ -282,11 +393,18 @@ Based on your project structure, I recommend:
 
 ## Conclusion
 
-**Hyperdht cannot work in React Native** because:
+**Hyperdht cannot work in standard React Native** because:
 1. It requires UDP sockets (not available in RN)
 2. It needs OS-level network access (blocked by mobile sandbox)
 3. React Native only supports HTTP, WebSocket, and WebRTC
 
-**The solution is architectural:** Use your Node.js backend for Hyperswarm, and connect mobile clients via WebSocket or WebRTC.
+**However, there IS a solution:** Use `react-native-bare-kit` to run Hyperswarm in a native worklet with full UDP access. This is a proven, production-ready approach used by bitcoin-tribe.
 
-This is not a bug or missing feature—it's a fundamental constraint of mobile platforms that affects all P2P libraries that rely on UDP (not just Hyperswarm).
+**Recommended path forward:**
+1. **Start here:** Read [BARE_KIT_SOLUTION.md](./BARE_KIT_SOLUTION.md) to understand the architecture
+2. **Implement:** Follow [IMPLEMENTATION_GUIDE_BARE_KIT.md](./IMPLEMENTATION_GUIDE_BARE_KIT.md) step-by-step
+3. **Reference:** Study [bitcoin-tribe's implementation](https://github.com/bithyve/bitcoin-tribe/tree/main/src/services/p2p)
+
+**Alternative approaches** (WebSocket bridge or WebRTC) are available if you need a faster start or have constraints that prevent using Bare Kit, but **Bare Kit is the recommended solution for true peer-to-peer mobile networking with Hyperswarm**.
+
+This is not a bug or missing feature—standard React Native intentionally restricts UDP access for security. Bare Kit works around this by providing a native runtime alongside React Native. 🚀

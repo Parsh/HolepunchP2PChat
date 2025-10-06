@@ -131,6 +131,60 @@ Complete guide to all project documentation.
 
 ---
 
+### 🎯 HyperDHT in React Native (hyperDHTReactNative/)
+
+A dedicated section exploring the challenges and solutions for running Hyperswarm/HyperDHT in React Native.
+
+**[hyperDHTReactNative/WHY_HYPERDHT_NOT_IN_REACT_NATIVE.md](./hyperDHTReactNative/WHY_HYPERDHT_NOT_IN_REACT_NATIVE.md)** - 13 KB
+- Why Hyperdht doesn't work in standard React Native
+- UDP socket requirements explained
+- Mobile platform limitations
+- Comparison of networking APIs
+- Alternative solutions overview
+- **UPDATE**: Introduction to Bare Kit solution
+
+**Use this if**: You want to understand the technical limitations of P2P in React Native.
+
+---
+
+**[hyperDHTReactNative/BARE_KIT_SOLUTION.md](./hyperDHTReactNative/BARE_KIT_SOLUTION.md)** - 22 KB ⭐
+- How bitcoin-tribe runs Hyperswarm in React Native
+- Complete Bare Kit architecture explanation
+- Worklet runtime vs React Native runtime
+- IPC/RPC communication flow
+- Technical deep dive with diagrams
+- Advantages and considerations
+- Code examples and patterns
+- Implementation checklist
+
+**Use this if**: You want to enable TRUE P2P networking in React Native using Bare Kit.
+
+---
+
+**[hyperDHTReactNative/BARE_KIT_SUMMARY.md](./hyperDHTReactNative/BARE_KIT_SUMMARY.md)** - 3 KB ⭐
+- Quick TL;DR of the Bare Kit solution
+- Key differences table
+- Fast reference guide
+- Implementation steps overview
+
+**Use this if**: You want a quick overview before diving into the detailed docs.
+
+---
+
+**[hyperDHTReactNative/IMPLEMENTATION_GUIDE.md](./hyperDHTReactNative/IMPLEMENTATION_GUIDE.md)** - 25 KB ⭐⭐
+- **THE** implementation guide (production-ready)
+- Clean architecture patterns
+- Full TypeScript type safety
+- Step-by-step instructions
+- Complete code examples (ready to use)
+- Build, test, and troubleshooting guides
+- Performance optimization tips
+- Comparison with bitcoin-tribe approach
+
+**Use this if**: You're ready to implement Bare Kit with production-quality code.
+
+---
+
 ### 🔌 Backend
 
 **[backend/README.md](./backend/README.md)** - ~3 KB
@@ -167,6 +221,13 @@ README.md (Start)
     │   ├── DEPLOYMENT.md (Production)
     │   └── TROUBLESHOOTING.md (Support)
     │
+    ├── HyperDHT in React Native: ⭐
+    │   ├── hyperDHTReactNative/
+    │   │   ├── WHY_HYPERDHT_NOT_IN_REACT_NATIVE.md (Problem)
+    │   │   ├── BARE_KIT_SOLUTION.md (Solution)
+    │   │   ├── IMPLEMENTATION_GUIDE_BARE_KIT.md (How-To)
+    │   │   └── BARE_KIT_SUMMARY.md (Quick Ref)
+    │
     └── Backend:
         └── backend/README.md (Server)
 ```
@@ -199,14 +260,24 @@ README.md (Start)
 ### "How was this built?"
 → Review [IMPLEMENTATION_PROGRESS.md](./IMPLEMENTATION_PROGRESS.md)
 
+### "Why doesn't Hyperswarm work in React Native?"
+→ Read [hyperDHTReactNative/WHY_HYPERDHT_NOT_IN_REACT_NATIVE.md](./hyperDHTReactNative/WHY_HYPERDHT_NOT_IN_REACT_NATIVE.md)
+
+### "How can I run Hyperswarm in React Native?" ⭐
+→ Quick: [hyperDHTReactNative/BARE_KIT_SUMMARY.md](./hyperDHTReactNative/BARE_KIT_SUMMARY.md) → Detailed: [hyperDHTReactNative/BARE_KIT_SOLUTION.md](./hyperDHTReactNative/BARE_KIT_SOLUTION.md)
+
+### "I want to implement true P2P on mobile" ⭐⭐
+→ Follow [hyperDHTReactNative/IMPLEMENTATION_GUIDE.md](./hyperDHTReactNative/IMPLEMENTATION_GUIDE.md) - production-ready guide with clean code
+
 ---
 
 ## 📈 Documentation Stats
 
-Total documentation: **~64 KB** across 8 files
+Total documentation: **~127 KB** across 12 files
 
 | Document | Size | Purpose |
 |----------|------|---------|
+| **Core Documentation** | | |
 | DEPLOYMENT.md | 11 KB | Production deployment |
 | PROJECT_SUMMARY.md | 10 KB | Project overview |
 | TROUBLESHOOTING.md | 10 KB | Problem solving |
@@ -216,6 +287,11 @@ Total documentation: **~64 KB** across 8 files
 | README.md | 5.2 KB | Project intro |
 | MIGRATION_TO_B4A.md | 3.7 KB | Technical migration |
 | backend/README.md | ~3 KB | Backend guide |
+| **hyperDHTReactNative/** ⭐ | **~63 KB** | **Bare Kit P2P Solution** |
+| ├─ BARE_KIT_SOLUTION.md | 22 KB | Architecture & solution |
+| ├─ IMPLEMENTATION_GUIDE.md ⭐⭐ | 25 KB | Production implementation guide |
+| ├─ WHY_HYPERDHT_NOT_IN_REACT_NATIVE.md | 13 KB | Problem explanation |
+| └─ BARE_KIT_SUMMARY.md | 3 KB | Quick reference |
 
 ---
 
@@ -223,7 +299,11 @@ Total documentation: **~64 KB** across 8 files
 
 ### In This Repository
 
-- **`design/specs/`** - Original technical specifications
+- **`design_docs/hyperDHTReactNative/`** ⭐ - Bare Kit P2P solution
+  - Complete guide to running Hyperswarm in React Native
+  - Problem analysis, solution architecture, implementation guide
+
+- **`design_docs/specs/`** - Original technical specifications
   - `REACT_NATIVE_SPECIFICATION_PART_1.md`
   - `REACT_NATIVE_SPECIFICATION_PART_2.md`
   - `REACT_NATIVE_SPECIFICATION_PART_3.md`
@@ -252,6 +332,8 @@ Total documentation: **~64 KB** across 8 files
 - [Holepunch Docs](https://docs.holepunch.to/)
 - [libsodium Docs](https://libsodium.gitbook.io/)
 - [b4a GitHub](https://github.com/holepunchto/b4a)
+- [Bare Kit GitHub](https://github.com/holepunchto/bare-kit) ⭐
+- [react-native-bare-kit NPM](https://www.npmjs.com/package/react-native-bare-kit) ⭐
 
 ---
 
@@ -313,6 +395,13 @@ When updating:
 3. [MIGRATION_TO_B4A.md](./MIGRATION_TO_B4A.md) - Technical decisions
 4. `design/specs/` - Original specifications
 
+### Expert Path (Bare Kit / True P2P) ⭐⭐
+1. [hyperDHTReactNative/BARE_KIT_SUMMARY.md](./hyperDHTReactNative/BARE_KIT_SUMMARY.md) - Quick overview
+2. [hyperDHTReactNative/WHY_HYPERDHT_NOT_IN_REACT_NATIVE.md](./hyperDHTReactNative/WHY_HYPERDHT_NOT_IN_REACT_NATIVE.md) - Understand the problem
+3. [hyperDHTReactNative/BARE_KIT_SOLUTION.md](./hyperDHTReactNative/BARE_KIT_SOLUTION.md) - Learn the solution
+4. [hyperDHTReactNative/IMPLEMENTATION_GUIDE.md](./hyperDHTReactNative/IMPLEMENTATION_GUIDE.md) - Implement with production code
+5. Bitcoin-tribe source code - Compare with real implementation
+
 ---
 
 ## 🆘 Getting Help
@@ -331,4 +420,5 @@ If the documentation doesn't answer your question:
 
 ---
 
-*Last Updated: October 3, 2025*
+*Last Updated: October 6, 2025*
+*Added: Bare Kit documentation and implementation guides*
