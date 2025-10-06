@@ -1,4 +1,4 @@
-import { ChatRootPeer } from './ChatRootPeer';
+import { ChatRootPeer } from './ChatRootPeer.js';
 
 interface ServerOptions {
   storageDir?: string;
