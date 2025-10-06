@@ -11,7 +11,7 @@ import {
   Clipboard,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { ChatClient } from '../src/chat/ChatClient';
+import { HyperswarmManager } from '../src/network/managers/HyperswarmManager';
 import { RootStackParamList } from '../src/types';
 
 type CreateRoomScreenNavigationProp = StackNavigationProp<
@@ -38,29 +38,31 @@ const CreateRoomScreen: React.FC<CreateRoomScreenProps> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const chatClient = new ChatClient();
-      const result = await chatClient.createRoom(username.trim());
+      const manager = HyperswarmManager.getInstance();
+      
+      // Generate a unique room ID (64 hex characters)
+      const roomId = Array.from({ length: 64 }, () => 
+        Math.floor(Math.random() * 16).toString(16)
+      ).join('');
+      
+      // Join the room (this will create it if it doesn't exist)
+      await manager.joinRoom(roomId);
+      
+      // Get the keys for sharing
+      const keys = await manager.getKeys();
+      const roomKey = roomId; // The room ID is the shareable key
+      
+      setRoomKey(roomKey);
+      setRoomCreated(true);
 
-      if (result.success && result.roomKey && result.roomId) {
-        setRoomKey(result.roomKey);
-        setRoomCreated(true);
-
-        // Navigate to chat screen with client instance
-        navigation.navigate('Chat', {
-          chatClient: chatClient as any,
-          roomInfo: {
-            roomId: result.roomId,
-            roomKey: result.roomKey,
-            username: username.trim(),
-            isCreator: true,
-          },
-        } as any);
-      } else {
-        Alert.alert('Error', result.error || 'Failed to create room');
-      }
+      // Navigate to chat screen
+      navigation.navigate('Chat', {
+        roomId,
+        roomKey,
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Error', `Failed to create room: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

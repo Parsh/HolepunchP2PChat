@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { ChatClient } from '../src/chat/ChatClient';
+import { HyperswarmManager } from '../src/network/managers/HyperswarmManager';
 import { RootStackParamList } from '../src/types';
 
 type JoinRoomScreenNavigationProp = StackNavigationProp<
@@ -48,27 +48,20 @@ const JoinRoomScreen: React.FC<JoinRoomScreenProps> = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const chatClient = new ChatClient();
-      const result = await chatClient.joinRoom(roomKey.trim(), username.trim());
-
-      if (result.success && result.roomId) {
-        // Navigate to chat screen with client instance
-        navigation.navigate('Chat', {
-          chatClient: chatClient as any,
-          roomInfo: {
-            roomId: result.roomId,
-            roomKey: roomKey.trim(),
-            username: username.trim(),
-            isCreator: false,
-          },
-          cachedMessages: result.cachedMessages || [],
-        } as any);
-      } else {
-        Alert.alert('Error', result.error || 'Failed to join room');
-      }
+      const manager = HyperswarmManager.getInstance();
+      const roomId = roomKey.trim();
+      
+      // Join the room
+      await manager.joinRoom(roomId);
+      
+      // Navigate to chat screen
+      navigation.navigate('Chat', {
+        roomId,
+        roomKey: roomId,
+      });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Error', `Failed to join room: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
