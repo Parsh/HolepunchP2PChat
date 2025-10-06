@@ -9,6 +9,9 @@ const path = require('path');
  */
 const config = {
   resolver: {
+    // Prioritize TypeScript files over JavaScript files
+    sourceExts: ['ts', 'tsx', 'js', 'jsx', 'json'],
+    
     extraNodeModules: {
       events: require.resolve('events'),
       stream: require.resolve('stream-browserify'),
@@ -17,10 +20,11 @@ const config = {
       util: require.resolve('util'),
     },
     resolveRequest: (context, moduleName, platform) => {
-      // Redirect sodium-native and sodium-universal to our shim
+      // Redirect both sodium-native and sodium-universal to sodium-javascript for React Native
+      // sodium-universal uses the browser field which Metro doesn't respect by default
       if (moduleName === 'sodium-native' || moduleName === 'sodium-universal') {
         return {
-          filePath: path.resolve(__dirname, 'sodium-native-shim.js'),
+          filePath: require.resolve('sodium-javascript'),
           type: 'sourceFile',
         };
       }

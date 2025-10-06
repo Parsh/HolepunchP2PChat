@@ -44,12 +44,16 @@ export class RoomManager {
   // Create new encrypted room
   async createRoom(username: string): Promise<CreateRoomResult> {
     try {
+      console.log('📝 Step 1: Generating room key...');
       // Generate room encryption key
       const roomKey = this.crypto.generateNewRoomKey();
+      console.log('📝 Step 2: Generated room key, deriving room ID...');
       const roomId = this.crypto.deriveRoomId(roomKey);
+      console.log('📝 Step 3: Room ID derived, loading user keys...');
 
       // Load user keys
       await this.crypto.loadOrGenerateKeys(username);
+      console.log('📝 Step 4: User keys loaded successfully');
 
       // Store room info locally
       const roomInfo: StoredRoomInfo = {
