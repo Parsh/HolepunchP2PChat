@@ -18,6 +18,7 @@ interface PeerData {
   rooms: Set<string>;
   connectedAt: number;
   announced?: boolean;
+  publicKey?: string;
 }
 
 interface PersistentState {
@@ -118,12 +119,14 @@ export class ChatRootPeer extends EventEmitter {
 
   async handlePeerConnection(conn: any, info: any): Promise<void> {
     const peerId = info.publicKey.toString('hex').slice(0, 16);
+    const peerPublicKey = info.publicKey.toString('hex'); // Store full public key
     console.log(`📡 New peer connected: ${peerId}...`);
 
     this.activePeers.set(peerId, {
       connection: conn,
       rooms: new Set(),
       connectedAt: Date.now(),
+      publicKey: peerPublicKey, // Add full public key
     });
 
     this.stats.activePeers = this.activePeers.size;
@@ -251,11 +254,12 @@ export class ChatRootPeer extends EventEmitter {
         peerData.rooms.add(roomName);
       }
 
-      // Store the message with metadata
+      // Store the message with metadata including full public key
       const messageData = {
         ...message,
         storedAt: Date.now(),
         fromPeer: peerId,
+        senderPublicKey: peerData?.publicKey || peerId, // Include full public key for attribution
       };
 
       await roomCore.append(JSON.stringify(messageData));
