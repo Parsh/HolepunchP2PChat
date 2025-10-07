@@ -19,6 +19,7 @@ import {
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HyperswarmManager } from '../src/network/managers/HyperswarmManager';
+import { RoomStorage } from '../src/storage/RoomStorage';
 import { RootStackParamList, ChatMessage } from '../src/types';
 
 type ChatScreenRouteProp = RouteProp<RootStackParamList, 'Chat'>;
@@ -49,6 +50,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         console.error('Failed to get keys:', error);
       }
     };
+
+    // Update last active timestamp for this room
+    RoomStorage.updateLastActive(roomId);
 
     getMyKey();
 

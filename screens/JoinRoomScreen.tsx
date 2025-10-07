@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HyperswarmManager } from '../src/network/managers/HyperswarmManager';
+import { RoomStorage } from '../src/storage/RoomStorage';
 import { RootStackParamList } from '../src/types';
 
 type JoinRoomScreenNavigationProp = StackNavigationProp<
@@ -53,6 +54,15 @@ const JoinRoomScreen: React.FC<JoinRoomScreenProps> = ({ navigation }) => {
       
       // Join the room
       await manager.joinRoom(roomId);
+      
+      // Save room to local storage
+      await RoomStorage.saveRoom({
+        roomId,
+        roomKey: roomId,
+        name: `Joined by ${username.trim()}`,
+        createdAt: Date.now(),
+        isCreator: false,
+      });
       
       // Navigate to chat screen
       navigation.navigate('Chat', {

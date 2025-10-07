@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HyperswarmManager } from '../src/network/managers/HyperswarmManager';
+import { RoomStorage, SavedRoom } from '../src/storage/RoomStorage';
 
 type RootStackParamList = {
   Welcome: undefined;
@@ -23,6 +24,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [savedRooms, setSavedRooms] = useState<SavedRoom[]>([]);
 
   useEffect(() => {
     const initializeNetwork = async () => {
@@ -62,6 +64,69 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
     initializeNetwork();
   }, []);
 
+  useEffect(() => {
+    // Load saved rooms when screen comes into focus
+    const loadRooms = async () => {
+      const rooms = await RoomStorage.getAllRooms();
+      setSavedRooms(rooms);
+    };
+
+    loadRooms();
+
+    // Set up a listener for when we navigate back to this screen
+    const unsubscribe = navigation.addListener('focus', loadRooms);
+    return unsubscribe;
+  }, [navigation]);
+
+  const handleRoomPress = async (room: SavedRoom) => {
+    try {
+      // Rejoin the room
+      const manager = HyperswarmManager.getInstance();
+      await manager.joinRoom(room.roomId);
+
+      // Navigate to chat screen
+      navigation.navigate('Chat', {
+        roomId: room.roomId,
+        roomKey: room.roomKey,
+      });
+    } catch (error) {
+      Alert.alert('Error', 'Failed to rejoin room');
+    }
+  };
+
+  const handleDeleteRoom = (room: SavedRoom) => {
+    Alert.alert(
+      'Delete Room',
+      `Are you sure you want to delete "${room.name || 'this room'}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await RoomStorage.deleteRoom(room.roomId);
+            const rooms = await RoomStorage.getAllRooms();
+            setSavedRooms(rooms);
+          },
+        },
+      ]
+    );
+  };
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 48) {
+      return 'Yesterday';
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>🔐 P2P Encrypted Chat</Text>
@@ -83,6 +148,33 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
       {isReady && (
         <View style={[styles.statusContainer, styles.readyContainer]}>
           <Text style={styles.readyText}>✓ Network Ready</Text>
+        </View>
+      )}
+      
+      {/* Saved Rooms List */}
+      {savedRooms.length > 0 && (
+        <View style={styles.roomsContainer}>
+          <Text style={styles.roomsTitle}>Your Rooms</Text>
+          <FlatList
+            data={savedRooms}
+            keyExtractor={(item) => item.roomId}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.roomItem}
+                onPress={() => handleRoomPress(item)}
+                onLongPress={() => handleDeleteRoom(item)}
+              >
+                <View style={styles.roomInfo}>
+                  <Text style={styles.roomName}>{item.name || 'Unnamed Room'}</Text>
+                  <Text style={styles.roomMeta}>
+                    {item.isCreator ? '👑 Creator' : '👤 Member'} • {formatDate(item.lastActive || item.createdAt)}
+                  </Text>
+                </View>
+                <Text style={styles.roomArrow}>›</Text>
+              </TouchableOpacity>
+            )}
+            style={styles.roomsList}
+          />
         </View>
       )}
       
@@ -173,6 +265,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#008800',
     fontWeight: 'bold',
+  },
+  roomsContainer: {
+    width: '100%',
+    maxWidth: 300,
+    marginBottom: 20,
+    maxHeight: 200,
+  },
+  roomsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  roomsList: {
+    width: '100%',
+  },
+  roomItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  roomInfo: {
+    flex: 1,
+  },
+  roomName: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  roomMeta: {
+    fontSize: 12,
+    color: '#666',
+  },
+  roomArrow: {
+    fontSize: 24,
+    color: '#007AFF',
+    marginLeft: 10,
   },
 });
 

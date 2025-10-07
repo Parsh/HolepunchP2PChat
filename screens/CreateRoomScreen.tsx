@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HyperswarmManager } from '../src/network/managers/HyperswarmManager';
+import { RoomStorage } from '../src/storage/RoomStorage';
 import { RootStackParamList } from '../src/types';
 
 type CreateRoomScreenNavigationProp = StackNavigationProp<
@@ -51,6 +52,15 @@ const CreateRoomScreen: React.FC<CreateRoomScreenProps> = ({ navigation }) => {
       // Get the keys for sharing
       const keys = await manager.getKeys();
       const roomKey = roomId; // The room ID is the shareable key
+      
+      // Save room to local storage
+      await RoomStorage.saveRoom({
+        roomId,
+        roomKey,
+        name: `Room by ${username.trim()}`,
+        createdAt: Date.now(),
+        isCreator: true,
+      });
       
       setRoomKey(roomKey);
       setRoomCreated(true);
