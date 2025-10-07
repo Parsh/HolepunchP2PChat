@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HyperswarmManager } from '../src/network/managers/HyperswarmManager';
+import { MessageEncryption } from '../src/crypto/MessageEncryption';
 import { RoomStorage } from '../src/storage/RoomStorage';
 import { RootStackParamList } from '../src/types';
 
@@ -38,10 +39,13 @@ const JoinRoomScreen: React.FC<JoinRoomScreenProps> = ({ navigation }) => {
       return;
     }
 
-    if (roomKey.trim().length !== 64) {
+    const roomKeyHex = roomKey.trim();
+    
+    // Validate room key format
+    if (!MessageEncryption.isValidRoomKey(roomKeyHex)) {
       Alert.alert(
         'Error',
-        'Invalid room key format. Key should be 64 characters.',
+        'Invalid room key format. Key should be 64 hex characters.',
       );
       return;
     }
@@ -50,15 +54,20 @@ const JoinRoomScreen: React.FC<JoinRoomScreenProps> = ({ navigation }) => {
 
     try {
       const manager = HyperswarmManager.getInstance();
-      const roomId = roomKey.trim();
       
-      // Join the room
-      await manager.joinRoom(roomId);
+      // Derive room ID from the room key (for P2P discovery)
+      const roomId = MessageEncryption.deriveRoomId(roomKeyHex);
       
-      // Save room to local storage
+      console.log('[JoinRoom] 🔑 Room Key (secret):', roomKeyHex.substring(0, 16) + '...');
+      console.log('[JoinRoom] 🆔 Derived Room ID:', roomId.substring(0, 16) + '...');
+      
+      // Join the room with BOTH roomId (for discovery) and roomKey (for encryption)
+      await manager.joinRoom(roomId, roomKeyHex);
+      
+      // Save room to local storage (save the KEY for future rejoins and encryption)
       await RoomStorage.saveRoom({
         roomId,
-        roomKey: roomId,
+        roomKey: roomKeyHex, // Store the actual room key, not the derived ID
         name: `Joined by ${username.trim()}`,
         createdAt: Date.now(),
         isCreator: false,
@@ -67,7 +76,7 @@ const JoinRoomScreen: React.FC<JoinRoomScreenProps> = ({ navigation }) => {
       // Navigate to chat screen
       navigation.navigate('Chat', {
         roomId,
-        roomKey: roomId,
+        roomKey: roomKeyHex,
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';

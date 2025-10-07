@@ -254,12 +254,13 @@ export class ChatRootPeer extends EventEmitter {
         peerData.rooms.add(roomName);
       }
 
-      // Store the message with metadata including full public key
+      // Store the encrypted message with metadata
+      // Message is always an encrypted string sent from the worklet
       const messageData = {
-        ...message,
+        message: message, // Encrypted string
         storedAt: Date.now(),
         fromPeer: peerId,
-        senderPublicKey: peerData?.publicKey || peerId, // Include full public key for attribution
+        senderPublicKey: peerData?.publicKey || peerId,
       };
 
       await roomCore.append(JSON.stringify(messageData));

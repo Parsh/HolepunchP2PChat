@@ -13,6 +13,7 @@ import {
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HyperswarmManager } from '../src/network/managers/HyperswarmManager';
 import { RoomStorage } from '../src/storage/RoomStorage';
+import { MessageEncryption } from '../src/crypto/MessageEncryption';
 import { RootStackParamList } from '../src/types';
 
 type CreateRoomScreenNavigationProp = StackNavigationProp<
@@ -41,28 +42,28 @@ const CreateRoomScreen: React.FC<CreateRoomScreenProps> = ({ navigation }) => {
     try {
       const manager = HyperswarmManager.getInstance();
       
-      // Generate a unique room ID (64 hex characters)
-      const roomId = Array.from({ length: 64 }, () => 
-        Math.floor(Math.random() * 16).toString(16)
-      ).join('');
+      // Generate a random 32-byte room key (64 hex chars) - this is the SECRET
+      const roomKey = MessageEncryption.generateRoomKey();
       
-      // Join the room (this will create it if it doesn't exist)
-      await manager.joinRoom(roomId);
+      // Derive room ID from key for P2P discovery (PUBLIC)
+      const roomId = MessageEncryption.deriveRoomId(roomKey);
       
-      // Get the keys for sharing
-      const keys = await manager.getKeys();
-      const roomKey = roomId; // The room ID is the shareable key
+      console.log('[CreateRoom] 🔑 Room Key (secret):', roomKey.substring(0, 16) + '...');
+      console.log('[CreateRoom] 🆔 Room ID (derived):', roomId.substring(0, 16) + '...');
       
-      // Save room to local storage
+      // Join the room with BOTH roomId (for discovery) and roomKey (for encryption)
+      await manager.joinRoom(roomId, roomKey);
+      
+      // Save room to local storage (save the KEY for sharing and encryption)
       await RoomStorage.saveRoom({
         roomId,
-        roomKey,
+        roomKey, // Store the secret key, not the derived ID
         name: `Room by ${username.trim()}`,
         createdAt: Date.now(),
         isCreator: true,
       });
       
-      setRoomKey(roomKey);
+      setRoomKey(roomKey); // Display KEY for sharing (not ID)
       setRoomCreated(true);
 
       // Navigate to chat screen

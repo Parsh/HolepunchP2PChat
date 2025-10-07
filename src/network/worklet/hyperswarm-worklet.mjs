@@ -237,10 +237,19 @@ class RPCManager {
     }
   }
 
-  handleSendMessage(req, { roomTopic, message }) {
+  handleSendMessage(req, { roomTopic, message, encrypted }) {
     try {
       const peersInRoom = state.getPeersInRoom(roomTopic);
-      const messageData = JSON.stringify(message);
+      
+      // Wrap message with encryption metadata for P2P transport
+      const envelope = {
+        roomTopic,
+        message,
+        encrypted: encrypted || false, // Flag to indicate if content is encrypted
+        timestamp: Date.now(),
+      };
+      
+      const messageData = JSON.stringify(envelope);
       let sentCount = 0;
 
       // Send to all connected peers in the room
@@ -252,10 +261,14 @@ class RPCManager {
         }
       }
 
-      // Also store with root peer for offline delivery
+      // Also store with root peer for offline delivery (message is already encrypted)
       storeMessageWithRootPeer(roomTopic, message);
 
-      console.log(`[Worklet] Sent message to ${sentCount} peers in room ${roomTopic}`);
+      const logMsg = encrypted 
+        ? `[Worklet] 🔐 Forwarded encrypted message to ${sentCount} peers`
+        : `[Worklet] Sent message to ${sentCount} peers`;
+      console.log(logMsg, 'in room', roomTopic.substring(0, 16));
+      
       req.reply(JSON.stringify({ success: true, sentTo: sentCount, storedWithRootPeer: state.isConnectedToRootPeer }));
     } catch (error) {
       console.error('[Worklet] Failed to send message:', error);
@@ -394,17 +407,21 @@ function setupConnectionHandlers(connection, peerKey) {
               message: msg,
               timestamp: msg.timestamp || Date.now(),
               fromRootPeer: true,
+              encrypted: true, // Messages from root peer are always encrypted
+              roomTopic: message.roomName,
             });
           });
         }
         return;
       }
       
-      // Regular P2P message
+      // Regular P2P message - preserve encryption flag
       rpcManager.sendEvent(WorkletEvent.MESSAGE_RECEIVED, {
         peerPublicKey: peerKey,
-        message,
-        timestamp: Date.now(),
+        message: message.message || message, // Support both envelope and direct format
+        timestamp: message.timestamp || Date.now(),
+        encrypted: message.encrypted || false,
+        roomTopic: message.roomTopic,
       });
     } catch (error) {
       console.error('[Worklet] Failed to parse message:', error);

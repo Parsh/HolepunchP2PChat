@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, Alert } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { HyperswarmManager } from '../src/network/managers/HyperswarmManager';
+import { MessageEncryption } from '../src/crypto/MessageEncryption';
 import { RoomStorage, SavedRoom } from '../src/storage/RoomStorage';
 
 type RootStackParamList = {
@@ -80,16 +81,35 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
 
   const handleRoomPress = async (room: SavedRoom) => {
     try {
-      // Rejoin the room
+      // Check if we have the room key
+      if (!room.roomKey) {
+        Alert.alert('Error', 'Room key not found. This room cannot be rejoined.');
+        return;
+      }
+
+      // Validate room key format
+      if (!MessageEncryption.isValidRoomKey(room.roomKey)) {
+        Alert.alert('Error', 'Invalid room key format. This room cannot be rejoined.');
+        return;
+      }
+
+      // Derive room ID from the stored room key
+      const roomId = MessageEncryption.deriveRoomId(room.roomKey);
+
+      console.log('[WelcomeScreen] 🔑 Rejoining room with key:', room.roomKey.substring(0, 16) + '...');
+      console.log('[WelcomeScreen] 🆔 Derived Room ID:', roomId.substring(0, 16) + '...');
+
+      // Rejoin the room with both roomId and roomKey
       const manager = HyperswarmManager.getInstance();
-      await manager.joinRoom(room.roomId);
+      await manager.joinRoom(roomId, room.roomKey);
 
       // Navigate to chat screen
       navigation.navigate('Chat', {
-        roomId: room.roomId,
+        roomId: roomId,
         roomKey: room.roomKey,
       });
     } catch (error) {
+      console.error('[WelcomeScreen] Error rejoining room:', error);
       Alert.alert('Error', 'Failed to rejoin room');
     }
   };

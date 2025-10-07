@@ -12,6 +12,7 @@ import RPC from 'bare-rpc';
 import b4a from 'b4a';
 import bundle from '../worklet/app.bundle.mjs';
 import { CommandIds, WorkletCommand, WorkletEvent } from '../constants/rpc-commands';
+import { MessageEncryption } from '../../crypto/MessageEncryption';
 import type {
   KeyPair,
   P2PMessage,
@@ -32,6 +33,10 @@ export class HyperswarmManager {
   private worklet: Worklet;
   private rpc: RPC | null = null;
   private initialized = false;
+  
+  // Room key storage for encryption/decryption
+  // Map: roomId (public topic) -> roomKey (secret for encryption)
+  private roomKeys: Map<string, string> = new Map();
   
   // Event listeners
   private listeners = {
@@ -110,7 +115,8 @@ export class HyperswarmManager {
         break;
       
       case CommandIds[WorkletEvent.MESSAGE_RECEIVED]:
-        this.emit('messageReceived', payload);
+        // Decrypt message if encrypted
+        this.handleMessageReceived(payload);
         break;
       
       case CommandIds[WorkletEvent.ERROR]:
@@ -119,6 +125,65 @@ export class HyperswarmManager {
       
       default:
         console.warn('[HyperswarmManager] Unknown event type:', eventType);
+    }
+  }
+
+  /**
+   * Handle received message - decrypt if encrypted
+   */
+  private handleMessageReceived(payload: any): void {
+    try {
+      // Check if message is encrypted (sent from worklet with encrypted flag)
+      if (payload.encrypted === true && payload.message) {
+        const roomTopic = payload.roomTopic || payload.message.roomTopic;
+        const roomKey = this.roomKeys.get(roomTopic);
+        
+        if (!roomKey) {
+          console.error('[HyperswarmManager] ❌ Cannot decrypt - room key not found for:', roomTopic?.substring(0, 16));
+          this.emit('error', { error: 'Cannot decrypt message - room key not found' });
+          return;
+        }
+        
+        console.log('[HyperswarmManager] 🔓 Decrypting received message...');
+        
+        // Decrypt the message - handle different formats
+        let encryptedData: string;
+        
+        if (typeof payload.message === 'string') {
+          // Direct encrypted string (from P2P messages)
+          encryptedData = payload.message;
+        } else if (payload.message && typeof payload.message === 'object') {
+          // Object with metadata from root peer sync
+          // Backend stores as: { message: "encrypted_string", storedAt, fromPeer, senderPublicKey }
+          if (payload.message.message && typeof payload.message.message === 'string') {
+            encryptedData = payload.message.message;
+          } else {
+            throw new Error('Could not find encrypted data in message object');
+          }
+        } else {
+          throw new Error('Invalid message format');
+        }
+        
+        const decryptedMessage = MessageEncryption.decrypt(roomKey, encryptedData);
+        
+        console.log('[HyperswarmManager] ✅ Message decrypted successfully');
+        
+        // Emit decrypted message
+        this.emit('messageReceived', {
+          ...payload,
+          message: decryptedMessage,
+          encrypted: false, // Now decrypted
+        });
+      } else {
+        // Unencrypted message (backwards compatibility)
+        this.emit('messageReceived', payload);
+      }
+    } catch (error) {
+      console.error('[HyperswarmManager] ❌ Decryption failed:', error);
+      this.emit('error', { 
+        error: 'Failed to decrypt message',
+        details: error.message,
+      });
     }
   }
 
@@ -150,11 +215,25 @@ export class HyperswarmManager {
     return response;
   }
 
-  async joinRoom(roomTopic: string): Promise<{ success: boolean; alreadyJoined?: boolean }> {
+  /**
+   * Join a room with encryption
+   * @param roomTopic - Room ID (hash of room key) for P2P discovery
+   * @param roomKey - 64-char hex room key for message encryption (not sent to worklet)
+   */
+  async joinRoom(roomTopic: string, roomKey: string): Promise<{ success: boolean; alreadyJoined?: boolean }> {
     this.ensureInitialized();
     
-    console.log('[HyperswarmManager] Joining room:', roomTopic);
+    // Validate room key format
+    if (!MessageEncryption.isValidRoomKey(roomKey)) {
+      throw new Error('Invalid room key format - must be 64 hex characters');
+    }
     
+    // Store room key for encryption/decryption (NOT sent to worklet)
+    this.roomKeys.set(roomTopic, roomKey);
+    
+    console.log('[HyperswarmManager] Joining room:', roomTopic.substring(0, 16), '(with encryption)');
+    
+    // Send only roomTopic to worklet (room key stays in React Native)
     const request = this.rpc!.request(CommandIds[WorkletCommand.JOIN_ROOM]);
     request.send(JSON.stringify({ roomTopic }));
     
@@ -178,18 +257,44 @@ export class HyperswarmManager {
     return response;
   }
 
+  /**
+   * Send an encrypted message to a room
+   * @param roomTopic - Room ID
+   * @param message - Message object to encrypt and send
+   */
   async sendMessage(roomTopic: string, message: P2PMessage): Promise<{ success: boolean; sentTo: number }> {
     this.ensureInitialized();
     
-    console.log('[HyperswarmManager] Sending message to room:', roomTopic);
+    // Get room key for encryption
+    const roomKey = this.roomKeys.get(roomTopic);
+    if (!roomKey) {
+      throw new Error('Room key not found - room not joined or key not stored');
+    }
     
-    const request = this.rpc!.request(CommandIds[WorkletCommand.SEND_MESSAGE]);
-    request.send(JSON.stringify({ roomTopic, message }));
+    console.log('[HyperswarmManager] 🔐 Encrypting and sending message to room:', roomTopic.substring(0, 16));
     
-    const reply = await request.reply();
-    const response = JSON.parse(b4a.toString(reply));
-    
-    return response;
+    try {
+      // Encrypt message in React Native
+      const encryptedData = MessageEncryption.encrypt(roomKey, message);
+      
+      console.log('[HyperswarmManager] ✅ Message encrypted, size:', encryptedData.length, 'bytes');
+      
+      // Send encrypted data to worklet (worklet doesn't decrypt, just forwards)
+      const request = this.rpc!.request(CommandIds[WorkletCommand.SEND_MESSAGE]);
+      request.send(JSON.stringify({ 
+        roomTopic, 
+        message: encryptedData, // Send encrypted string instead of plain message
+        encrypted: true, // Flag to indicate this is encrypted
+      }));
+      
+      const reply = await request.reply();
+      const response = JSON.parse(b4a.toString(reply));
+      
+      return response;
+    } catch (error) {
+      console.error('[HyperswarmManager] ❌ Encryption failed:', error);
+      throw new Error(`Failed to encrypt message: ${error.message}`);
+    }
   }
 
   // --------------------------------------------------------------------------
