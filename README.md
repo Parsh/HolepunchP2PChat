@@ -162,6 +162,13 @@ npx react-native run-android
 - Node.js: `18+` (for backend)
 - react-native-bare-kit: `0.5.6+` (for Bare.js worklet support)
 
+## 📚 Documentation
+
+- **[Architecture Guide](./design_docs/ARCHITECTURE.md)** - Complete system architecture, component interactions, and message flow
+- **[Encryption Architecture](./design_docs/ENCRYPTION_ARCHITECTURE.md)** - End-to-end encryption design and security model
+- **[Backend Documentation](./backend/README.md)** - Root peer server setup and API
+- **[Technical Research](./design_docs/hyperDHTReactNative/)** - Hyperswarm integration research and notes
+
 ## 🧪 Testing
 
 Run unit tests:
