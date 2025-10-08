@@ -172,6 +172,7 @@ npx react-native run-android
 ## 📚 Documentation
 
 - **[Architecture Guide](./design_docs/ARCHITECTURE.md)** - Complete system architecture, component interactions, and message flow
+- **[Deployment Guide](./design_docs/DEPLOYMENT.md)** - Production deployment for mobile apps and backend (no URL config needed!)
 - **[Encryption Architecture](./design_docs/ENCRYPTION_ARCHITECTURE.md)** - End-to-end encryption design and security model
 - **[Backend Documentation](./backend/README.md)** - Root peer server setup and API
 - **[Technical Research](./design_docs/hyperDHTReactNative/)** - Hyperswarm integration research and notes
