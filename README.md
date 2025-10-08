@@ -44,14 +44,20 @@ cd HolepunchP2PChat
 yarn install
 ```
 
-2. **Install iOS dependencies** (macOS only):
+2. **Build the Bare.js worklet bundle**:
+```bash
+yarn bundle:worklet
+```
+> **Note:** The worklet bundle (`app.bundle.mjs`) is not included in the repository and must be generated before running the app. 
+
+3. **Install iOS dependencies** (macOS only):
 ```bash
 cd ios
 pod install
 cd ..
 ```
 
-3. **Install backend dependencies**:
+4. **Install backend dependencies**:
 ```bash
 cd backend
 yarn install
@@ -207,6 +213,31 @@ yarn start --reset-cache
 cd ios
 xcodebuild clean
 cd ..
+```
+
+### Worklet Bundle
+
+The Bare.js worklet must be bundled before running the app:
+
+```bash
+# Bundle the worklet
+yarn bundle:worklet
+```
+
+This generates `src/network/worklet/app.bundle.mjs` which is:
+- **Not committed** to the repository (in `.gitignore`)
+- **Required** for the app to run
+- **Auto-generated** when running `yarn ios` or `yarn android` (via prebuild hook)
+
+If you get errors about missing worklet bundle:
+```bash
+# Manually regenerate
+yarn bundle:worklet
+
+# Or clean and rebuild
+rm -rf node_modules
+yarn install
+yarn bundle:worklet
 ```
 
 ### Testing P2P Connectivity
