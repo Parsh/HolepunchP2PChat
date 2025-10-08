@@ -935,7 +935,7 @@ PODS:
   - React-Mapbuffer (0.74.1):
     - glog
     - React-debug
-  - "react-native-bare-kit (0.5.6+7ee1dd)":
+  - "react-native-bare-kit (0.5.6+2ab100)":
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1464,7 +1464,7 @@ SPEC CHECKSUMS:
   React-jsitracing: dd0e541a34027b3ab668ad94cf268482ad6f82fb
   React-logger: 6070f362a1657bb53335eb1fc903d3f49fd79842
   React-Mapbuffer: 2c95cbabc3d75a17747452381e998c35208ea3ee
-  react-native-bare-kit: a64410aca6779c79feebe3cc9b1ee3cc5b9f7e2d
+  react-native-bare-kit: 40ee0c1304123f4aac0bc3e58fe73c2e3da59ba9
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
   react-native-safe-area-context: 758e894ca5a9bd1868d2a9cfbca7326a2b6bf9dc
   React-nativeconfig: b0073a590774e8b35192fead188a36d1dca23dec

@@ -221,7 +221,7 @@ export class HyperswarmManager {
    * @param roomKey - 64-char hex room key for message encryption (not sent to worklet)
    * @param lastSyncedIndex - Optional: Last message index already synced (for incremental sync)
    */
-  async joinRoom(roomTopic: string, roomKey: string, lastSyncedIndex: number = 2): Promise<{ success: boolean; alreadyJoined?: boolean }> {
+  async joinRoom(roomTopic: string, roomKey: string, lastSyncedIndex: number = 0): Promise<{ success: boolean; alreadyJoined?: boolean }> {
     this.ensureInitialized();
     
     // Validate room key format
