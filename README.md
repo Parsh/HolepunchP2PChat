@@ -60,9 +60,10 @@ cd ..
 4. **Install backend dependencies**:
 ```bash
 cd backend
-yarn install
+npm install
 cd ..
 ```
+> **Note:** The backend uses npm (not yarn) as it's a separate Node.js project with its own `package-lock.json`.
 
 ### Running the App
 
