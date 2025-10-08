@@ -26,6 +26,7 @@ const WorkletCommand = {
   JOIN_ROOM: 3,
   LEAVE_ROOM: 4,
   SEND_MESSAGE: 5,
+  REQUEST_SYNC: 6,
 };
 
 const WorkletEvent = {
@@ -166,6 +167,10 @@ class RPCManager {
           this.handleSendMessage(req, JSON.parse(data));
           break;
         
+        case WorkletCommand.REQUEST_SYNC:
+          this.handleRequestSync(req, JSON.parse(data));
+          break;
+        
         default:
           console.warn('[Worklet] Unknown command:', req.command);
           req.reply(JSON.stringify({ error: 'Unknown command' }));
@@ -210,8 +215,9 @@ class RPCManager {
       if (state.isConnectedToRootPeer) {
         registerRoomWithRootPeer(roomTopic);
         
-        // Request sync of offline messages
-        requestSyncFromRootPeer(roomTopic);
+        // NOTE: Sync is now controlled by React Native via REQUEST_SYNC command
+        // This allows React Native to pass the correct lastIndex for incremental sync
+        console.log('[Worklet] ℹ️  Room registered. Waiting for React Native to request sync...');
       }
 
       req.reply(JSON.stringify({ success: true }));
@@ -272,6 +278,20 @@ class RPCManager {
       req.reply(JSON.stringify({ success: true, sentTo: sentCount, storedWithRootPeer: state.isConnectedToRootPeer }));
     } catch (error) {
       console.error('[Worklet] Failed to send message:', error);
+      req.reply(JSON.stringify({ success: false, error: error.message }));
+    }
+  }
+
+  handleRequestSync(req, { roomTopic, lastIndex }) {
+    try {
+      console.log('[Worklet] 📨 Sync requested for room:', roomTopic.substring(0, 16), 'from index:', lastIndex);
+      
+      // Request sync from root peer with the specified lastIndex
+      requestSyncFromRootPeer(roomTopic, lastIndex);
+      
+      req.reply(JSON.stringify({ success: true }));
+    } catch (error) {
+      console.error('[Worklet] Failed to request sync:', error);
       req.reply(JSON.stringify({ success: false, error: error.message }));
     }
   }
@@ -351,7 +371,7 @@ function storeMessageWithRootPeer(roomTopic, message) {
   }
 }
 
-function requestSyncFromRootPeer(roomTopic) {
+function requestSyncFromRootPeer(roomTopic, lastIndex = 0) {
   if (!state.isConnectedToRootPeer || !state.rootPeerConnection) {
     return; // No root peer, skip sync
   }
@@ -359,12 +379,12 @@ function requestSyncFromRootPeer(roomTopic) {
   const syncRequest = {
     type: 'sync-request',
     roomName: roomTopic,
-    lastIndex: 0, // Request all messages for now (TODO: track last index)
+    lastIndex: lastIndex,
   };
 
   try {
     state.rootPeerConnection.write(JSON.stringify(syncRequest));
-    console.log('[Worklet] 🔄 Requested sync from root peer for room:', roomTopic.substring(0, 16));
+    console.log('[Worklet] 🔄 Requested sync from index:', lastIndex, 'for room:', roomTopic.substring(0, 16));
   } catch (error) {
     console.error('[Worklet] ❌ Failed to request sync:', error);
   }

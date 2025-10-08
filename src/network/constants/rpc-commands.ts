@@ -14,6 +14,7 @@ export enum WorkletCommand {
   JOIN_ROOM = 'JOIN_ROOM',
   LEAVE_ROOM = 'LEAVE_ROOM',
   SEND_MESSAGE = 'SEND_MESSAGE',
+  REQUEST_SYNC = 'REQUEST_SYNC', // Request sync with specific lastIndex
 }
 
 /**
@@ -38,6 +39,7 @@ export const CommandIds = {
   [WorkletCommand.JOIN_ROOM]: 3,
   [WorkletCommand.LEAVE_ROOM]: 4,
   [WorkletCommand.SEND_MESSAGE]: 5,
+  [WorkletCommand.REQUEST_SYNC]: 6,
   
   // Events (Worklet → React Native)
   [WorkletEvent.READY]: 10,

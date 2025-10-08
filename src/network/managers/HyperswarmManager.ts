@@ -219,8 +219,9 @@ export class HyperswarmManager {
    * Join a room with encryption
    * @param roomTopic - Room ID (hash of room key) for P2P discovery
    * @param roomKey - 64-char hex room key for message encryption (not sent to worklet)
+   * @param lastSyncedIndex - Optional: Last message index already synced (for incremental sync)
    */
-  async joinRoom(roomTopic: string, roomKey: string): Promise<{ success: boolean; alreadyJoined?: boolean }> {
+  async joinRoom(roomTopic: string, roomKey: string, lastSyncedIndex: number = 2): Promise<{ success: boolean; alreadyJoined?: boolean }> {
     this.ensureInitialized();
     
     // Validate room key format
@@ -239,6 +240,16 @@ export class HyperswarmManager {
     
     const reply = await request.reply();
     const response = JSON.parse(b4a.toString(reply));
+    
+    // After successfully joining, request sync with the provided lastIndex
+    if (response.success) {
+      console.log('[HyperswarmManager] 🔄 Requesting sync from index:', lastSyncedIndex);
+      
+      // Request sync in background (don't wait for it)
+      this.requestSync(roomTopic, lastSyncedIndex).catch(error => {
+        console.error('[HyperswarmManager] Failed to request sync after join:', error);
+      });
+    }
     
     return response;
   }
@@ -295,6 +306,27 @@ export class HyperswarmManager {
       console.error('[HyperswarmManager] ❌ Encryption failed:', error);
       throw new Error(`Failed to encrypt message: ${error.message}`);
     }
+  }
+
+  /**
+   * Manually request sync from root peer starting at a specific message index
+   * @param roomTopic - Room ID
+   * @param lastIndex - Start syncing from this message index (0 = all messages)
+   */
+  async requestSync(roomTopic: string, lastIndex: number = 0): Promise<{ success: boolean }> {
+    this.ensureInitialized();
+    
+    console.log('[HyperswarmManager] 🔄 Requesting sync from index:', lastIndex, 'for room:', roomTopic.substring(0, 16));
+    
+    const request = this.rpc!.request(CommandIds[WorkletCommand.REQUEST_SYNC]);
+    request.send(JSON.stringify({ roomTopic, lastIndex }));
+    
+    const reply = await request.reply();
+    const response = JSON.parse(b4a.toString(reply));
+    
+    console.log('[HyperswarmManager] ✅ Sync request sent');
+    
+    return response;
   }
 
   // --------------------------------------------------------------------------
