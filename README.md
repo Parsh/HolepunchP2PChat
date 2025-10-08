@@ -169,20 +169,10 @@ npm test
 
 ## 📚 Documentation
 
-### Getting Started
-- [Quick Start Guide](./QUICK_START.md) - Fast setup checklist
-- [Development Guide](./DEVELOPMENT.md) - Complete development guide
-- [Deployment Guide](./DEPLOYMENT.md) - Production deployment instructions
-
-### Reference
-- [Project Summary](./PROJECT_SUMMARY.md) - Executive overview and architecture
-- [Implementation Progress](./IMPLEMENTATION_PROGRESS.md) - Stage-by-stage progress
-- [Troubleshooting](./TROUBLESHOOTING.md) - Common issues and solutions
-- [Migration to b4a](./MIGRATION_TO_B4A.md) - Buffer implementation upgrade
-
-### Technical
-- [Backend Documentation](./backend/README.md) - Root peer server guide
-- [Specifications](./design/specs/) - Full technical specifications
+- **[Development Guide](./design_docs/DEVELOPMENT.md)** - Architecture, setup, and debugging
+- **[Encryption Architecture](./design_docs/ENCRYPTION_ARCHITECTURE.md)** - End-to-end encryption design
+- **[Backend Documentation](./backend/README.md)** - Root peer server setup and API
+- **[Technical Specifications](./design_docs/specs/)** - Detailed technical specs
 
 ## 🔒 Security
 

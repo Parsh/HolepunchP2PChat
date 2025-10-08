@@ -499,6 +499,30 @@ User A (Online)          Root Peer             User B (Offline)
 - ❌ Sender's username (unless in public key)
 - ❌ Any metadata inside the encrypted envelope
 
+### Incremental Sync (New Feature)
+
+As of October 2025, the system supports **incremental sync** to avoid re-downloading all messages:
+
+```javascript
+// React Native requests sync from a specific message index
+await manager.requestSync(roomId, lastSyncedIndex);
+
+// Worklet forwards request to root peer
+requestSyncFromRootPeer(roomTopic, lastIndex);
+
+// Backend only sends messages from that index onwards
+for (let i = lastIndex; i < roomCore.length; i++) {
+  const message = await roomCore.get(i);
+  messages.push(message);
+}
+```
+
+**Benefits:**
+- ✅ Reduced bandwidth (only new messages)
+- ✅ Faster sync for returning users
+- ✅ Better performance for large message histories
+- ✅ Persistent peer identity across restarts (via SeedStorage)
+
 ---
 
 ## Security Properties
@@ -688,4 +712,29 @@ For most use cases, this provides adequate security. For high-security scenarios
 
 ---
 
-*Last Updated: October 7, 2025*
+## Implementation Status (October 2025)
+
+### ✅ Implemented Features
+- End-to-end AES-256 encryption (crypto-js)
+- Room key generation and SHA-256 derivation
+- Encrypted P2P messaging via Hyperswarm
+- Root peer offline message storage (encrypted)
+- Message sync with incremental lastIndex parameter
+- Persistent seed storage for consistent peer identity
+- Encryption/decryption in React Native layer only
+
+### 🔄 Recent Updates
+- **October 8, 2025**: Added incremental sync (lastIndex parameter)
+- **October 8, 2025**: Added persistent seed storage (SeedStorage.ts)
+- **October 7, 2025**: Implemented end-to-end encryption
+
+### 📝 Code References
+- **Encryption**: `src/crypto/MessageEncryption.ts`
+- **Manager**: `src/network/managers/HyperswarmManager.ts`
+- **Worklet**: `src/network/worklet/hyperswarm-worklet.mjs`
+- **Root Peer**: `backend/ChatRootPeer.ts`
+- **Seed Storage**: `src/storage/SeedStorage.ts`
+
+---
+
+*Last Updated: October 8, 2025*
