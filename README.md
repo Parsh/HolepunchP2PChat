@@ -4,10 +4,11 @@ A proof-of-concept peer-to-peer encrypted chat application built with React Nati
 
 ## 🎯 Features
 
-- ✅ **End-to-end encrypted messaging** using libsodium
+- ✅ **End-to-end encrypted messaging** using AES-256 (crypto-js)
 - ✅ **Peer-to-peer connectivity** via Hyperswarm
 - ✅ **Offline message delivery** through root peer storage
 - ✅ **Room-based chat** with secure key sharing
+- ✅ **Incremental message sync** with persistent peer identity
 - ✅ **Cross-platform** support (iOS & Android)
 
 ## 📋 Architecture
@@ -115,13 +116,13 @@ npx react-native run-android
 │   ├── storage/         # Local message persistence
 │   └── chat/            # Chat client orchestration
 ├── screens/             # React Native UI screens
-│   ├── WelcomeScreen.js
-│   ├── CreateRoomScreen.js
-│   ├── JoinRoomScreen.js
-│   └── ChatScreen.js
+│   ├── WelcomeScreen.tsx
+│   ├── CreateRoomScreen.tsx
+│   ├── JoinRoomScreen.tsx
+│   └── ChatScreen.tsx
 ├── backend/             # Root peer server
-│   ├── server.js
-│   ├── ChatRootPeer.js
+│   ├── server.ts
+│   ├── ChatRootPeer.ts
 │   └── package.json
 ├── App.tsx              # Main app navigation
 └── package.json         # Dependencies
@@ -134,9 +135,10 @@ npx react-native run-android
 - React 18.2.0
 - React Navigation (Stack Navigator)
 - Hyperswarm 4.14.0+ (P2P networking)
-- libsodium-wrappers 0.7.15 (encryption)
+- crypto-js 4.2.0 (AES-256 encryption)
 - AsyncStorage (persistence)
 - react-native-gesture-handler (navigation gestures)
+- react-native-bare-kit 0.5.6+ (Bare.js worklet support)
 - b4a (Buffer implementation optimized for React Native)
 - Node.js polyfills (buffer, process, events, stream, util)
 
@@ -147,9 +149,9 @@ npx react-native run-android
 - Corestore (data management)
 
 ### React Native Adaptations
-- Custom Metro resolver for sodium-native compatibility
-- Polyfills for Node.js built-in modules
-- libsodium-wrappers shim for native module compatibility
+- Bare.js worklet for native Hyperswarm support (react-native-bare-kit)
+- Node.js polyfills for Hyperswarm compatibility (buffer, process, events, stream, util)
+- Custom Metro configuration for TypeScript and module resolution
 
 ## 📝 Key Dependencies
 
@@ -167,20 +169,14 @@ Run unit tests:
 npm test
 ```
 
-## 📚 Documentation
-
-- **[Development Guide](./design_docs/DEVELOPMENT.md)** - Architecture, setup, and debugging
-- **[Encryption Architecture](./design_docs/ENCRYPTION_ARCHITECTURE.md)** - End-to-end encryption design
-- **[Backend Documentation](./backend/README.md)** - Root peer server setup and API
-- **[Technical Specifications](./design_docs/specs/)** - Detailed technical specs
-
 ## 🔒 Security
 
-- End-to-end encryption using libsodium's `crypto_box`
-- 32-byte room keys for room identification
-- Per-user keypairs for P2P messaging
-- Messages encrypted before transmission
-- Root peer stores unencrypted messages for offline delivery
+- End-to-end encryption using crypto-js AES-256
+- 32-byte room keys (shared secret) for room identification
+- SHA-256 key derivation for public room topic discovery
+- Messages encrypted in React Native before transmission
+- Root peer stores encrypted messages (cannot decrypt without room key)
+- Incremental sync with persistent peer identity
 
 ## 🛠️ Development
 
@@ -190,11 +186,10 @@ Enable verbose logging by checking the console logs in the app.
 
 ### Metro Bundler
 
-The project uses a custom Metro configuration to handle React Native-incompatible Node.js modules:
+The project uses a custom Metro configuration for React Native compatibility:
 
-- **Custom resolver**: Intercepts `sodium-native` and `sodium-universal` requires
-- **Polyfills**: Provides Node.js built-in modules (buffer, process, events, stream, util)
-- **Shim layer**: Maps native modules to React Native-compatible alternatives
+- **Node.js Polyfills**: Provides built-in modules (buffer, process, events, stream, util) required by Hyperswarm
+- **TypeScript Support**: Prioritizes `.ts`/`.tsx` files over `.js`/`.jsx`
 
 If you encounter module resolution issues, try:
 ```bash
