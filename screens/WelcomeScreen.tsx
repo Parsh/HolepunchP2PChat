@@ -46,8 +46,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
           setIsInitializing(false);
         });
 
-        // Initialize the worklet with a seed (in production, load this from secure storage)
-        const seed = 'demo-seed-' + Date.now(); // TODO: Replace with actual seed from storage
+        // Initialize the worklet with a persistent seed
+        const { SeedStorage } = await import('../src/storage/SeedStorage');
+        const seed = await SeedStorage.getOrCreateSeed();
         await manager.initialize(seed);
 
         // Cleanup on unmount
