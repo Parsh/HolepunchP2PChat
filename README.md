@@ -8,7 +8,6 @@ A proof-of-concept peer-to-peer encrypted chat application built with React Nati
 - ✅ **Peer-to-peer connectivity** via Hyperswarm
 - ✅ **Offline message delivery** through root peer storage
 - ✅ **Room-based chat** with secure key sharing
-- ✅ **Local message persistence** using AsyncStorage
 - ✅ **Cross-platform** support (iOS & Android)
 
 ## 📋 Architecture
@@ -29,103 +28,56 @@ A proof-of-concept peer-to-peer encrypted chat application built with React Nati
 
 ### Prerequisites
 
-- **Node.js 18+** (recommended: Node.js 22.x via nvm)
-- **Yarn 3.6.4** (or npm as alternative)
-- **React Native development environment**
-  - **iOS**: Xcode, CocoaPods
-  - **Android**: Android Studio, Android SDK
-- **iOS Simulator or Android Emulator**
+- **Node.js 18+** (tested with Node.js 22.x)
+- **Yarn** (or npm)
+- **Xcode** (for iOS development) - macOS only
+- **CocoaPods** (for iOS dependencies) - Install via `brew install cocoapods`
+- **React Native CLI** - Install via `npm install -g react-native-cli`
 
-### Environment Setup
+### Setup & Installation
 
-1. **Install nvm (Node Version Manager)**:
+1. **Clone the repository and install dependencies**:
 ```bash
-# Install nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
-
-# Add to ~/.zshrc
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
-
-# Reload shell configuration
-source ~/.zshrc
-
-# Install Node.js
-nvm install 22
-nvm use 22
-```
-
-2. **Create system-wide node symlink** (for Xcode):
-```bash
-sudo ln -sf "$(which node)" /usr/local/bin/node
-```
-
-3. **Install Yarn** (if not already installed):
-```bash
-npm install -g yarn
-```
-
-4. **Install CocoaPods** (for iOS):
-```bash
-# Install Homebrew if not installed
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install CocoaPods
-brew install cocoapods
-```
-
-### Installation
-
-1. **Install frontend dependencies**:
-```bash
+git clone <repository-url>
+cd HolepunchP2PChat
 yarn install
 ```
 
-2. **Install iOS pods**:
+2. **Install iOS dependencies** (macOS only):
 ```bash
 cd ios
 pod install
 cd ..
 ```
 
-3. **Verify versions**:
-```bash
-yarn verify-versions
-```
-
-### Backend Setup
-
-1. **Install backend dependencies**:
+3. **Install backend dependencies**:
 ```bash
 cd backend
 yarn install
 cd ..
 ```
 
-2. **Start the root peer backend**:
-```bash
-cd backend
-source ~/.nvm/nvm.sh && node server.js &
-cd ..
-```
-
 ### Running the App
 
-1. **Start Metro bundler**:
+**Step 1: Start the root peer backend** (in Terminal 1):
 ```bash
-yarn start
+cd backend
+npm run start
 ```
 
-2. **Run on iOS** (in a new terminal):
+**Step 2: Start React Native** (in Terminal 2):
 ```bash
-yarn ios
+# For iOS
+npx react-native run-ios
+
+# Or specify a simulator
+npx react-native run-ios --simulator="iPhone 17 Pro"
+
+# For Android
+npx react-native run-android
 ```
 
-3. **Run on Android** (in a new terminal):
-```bash
-yarn android
-```
+> **Note:** The Metro bundler will start automatically. If you need to reset the cache, use `npx react-native start --reset-cache`
 
 ## 📖 Usage
 
@@ -199,14 +151,14 @@ yarn android
 - Polyfills for Node.js built-in modules
 - libsodium-wrappers shim for native module compatibility
 
-## 📝 Version Requirements
+## 📝 Key Dependencies
 
-**Critical**: These exact versions are required for compatibility:
-
-- React: `18.2.0` (exact)
-- React Native: `0.74.1` (exact)
-- TypeScript: `5.0.4` (recommended)
+- React: `18.2.0`
+- React Native: `0.74.1`
+- TypeScript: `5.0.4`
+- Hyperswarm: `4.14.0+`
 - Node.js: `18+` (for backend)
+- react-native-bare-kit: `0.5.6+` (for Bare.js worklet support)
 
 ## 🧪 Testing
 

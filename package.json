@@ -8,7 +8,6 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-    "verify-versions": "node verify-versions.js",
     "bundle:worklet": "bare-pack --target ios --target android --linked --out src/network/worklet/app.bundle.mjs src/network/worklet/hyperswarm-worklet.mjs",
     "prebuild": "yarn bundle:worklet"
   },
