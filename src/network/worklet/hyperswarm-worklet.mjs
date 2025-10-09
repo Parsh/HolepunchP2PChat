@@ -457,8 +457,11 @@ function setupConnectionHandlers(connection, peerKey) {
   connection.on('close', () => {
     console.log('[Worklet] Connection closed:', peerKey);
     
-    // Check if this was the root peer
-    if (peerKey === state.rootPeerKey) {
+    // Check if this was the root peer (BEFORE removing it!)
+    const wasRootPeer = (peerKey === state.rootPeerKey);
+    
+    if (wasRootPeer) {
+      console.log('[Worklet] 🚨 Root peer disconnected!');
       state.removeRootPeer();
     }
     
@@ -467,7 +470,7 @@ function setupConnectionHandlers(connection, peerKey) {
     rpcManager.sendEvent(WorkletEvent.PEER_DISCONNECTED, {
       peerPublicKey: peerKey,
       timestamp: Date.now(),
-      wasRootPeer: peerKey === state.rootPeerKey,
+      isRootPeer: wasRootPeer, // Use consistent naming with PEER_CONNECTED
     });
   });
 
@@ -489,18 +492,24 @@ function setupConnectionHandlers(connection, peerKey) {
 
 async function initializeWorklet() {
   try {
+    console.log('[Worklet] 🚀 Starting worklet initialization...');
+    
     // Get seed from React Native (passed as argument)
     const seed = Buffer.from(Bare.argv[0], 'hex');
+    console.log('[Worklet] ✅ Seed received from React Native');
 
     // Initialize Hyperswarm
+    console.log('[Worklet] 📡 Initializing Hyperswarm...');
     state.swarm = new Hyperswarm({ seed });
     state.keyPair = state.swarm.keyPair;
 
-    console.log('[Worklet] Initialized with public key:', state.keyPair.publicKey.toString('hex'));
+    console.log('[Worklet] ✅ Initialized with public key:', state.keyPair.publicKey.toString('hex'));
 
     // Set up RPC communication
+    console.log('[Worklet] 🔌 Setting up RPC communication...');
     const { IPC } = BareKit;
     rpcManager = new RPCManager(IPC);
+    console.log('[Worklet] ✅ RPC manager ready');
 
     // Set up connection handler
     state.swarm.on('connection', (connection, info) => {
@@ -550,16 +559,21 @@ async function initializeWorklet() {
       client: true,  // We are a client looking for root peer
       server: false  // We are not a root peer
     });
+    console.log('[Worklet] ✅ Joined root peer discovery swarm');
     
+    console.log('[Worklet] ⏳ Flushing swarm connections...');
     await state.swarm.flush();
+    console.log('[Worklet] ✅ Swarm flush complete');
 
-    console.log('[Worklet] Ready and listening');
+    console.log('[Worklet] 🎉 Ready and listening');
 
     // Notify React Native that worklet is ready
+    console.log('[Worklet] 📤 Sending READY event to React Native...');
     rpcManager.sendEvent(WorkletEvent.READY, {
       type: 'ready',
       publicKey: state.keyPair.publicKey.toString('hex'),
     });
+    console.log('[Worklet] ✅ READY event sent!');
 
   } catch (error) {
     console.error('[Worklet] Initialization failed:', error);
