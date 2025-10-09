@@ -35,6 +35,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
   const [connectedPeersCount, setConnectedPeersCount] = useState(0);
+  const [isRootPeerConnected, setIsRootPeerConnected] = useState(false);
   const [myPublicKey, setMyPublicKey] = useState<string>('');
   const [showRoomInfo, setShowRoomInfo] = useState(false);
   const flatListRef = useRef<FlatList>(null);
@@ -91,6 +92,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     // Listen for root peer disconnection
     const unsubscribeRootPeerDisconnected = manager.onRootPeerDisconnected(() => {
       console.log('[ChatScreen] ⚠️ Root peer disconnected!');
+      setIsRootPeerConnected(false);
       Alert.alert(
         'Backend Server Disconnected',
         'The backend server has disconnected. Your messages will not be backed up until the server reconnects.',
@@ -101,6 +103,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
     // Listen for root peer reconnection
     const unsubscribeRootPeerConnected = manager.onRootPeerConnected(() => {
       console.log('[ChatScreen] ✅ Root peer reconnected!');
+      setIsRootPeerConnected(true);
       Alert.alert(
         'Backend Server Connected',
         'The backend server has reconnected. Message backup has resumed.',
@@ -116,6 +119,9 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
         console.error('Failed to get peers:', error);
       }
     };
+
+    // Check initial root peer connection status
+    setIsRootPeerConnected(manager.isRootPeerConnected());
 
     updateConnectedPeers();
 
@@ -253,9 +259,21 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
 
       <View style={styles.headerCenter}>
         <Text style={styles.roomTitle}>🔐 Encrypted Room</Text>
-        <Text style={styles.roomSubtitle}>
-          {connectedPeersCount} peers connected
-        </Text>
+        <View style={styles.connectionStatusContainer}>
+          <View style={styles.statusBadge}>
+            <Text style={[
+              styles.statusText,
+              isRootPeerConnected ? styles.connectedText : styles.disconnectedText
+            ]}>
+              {isRootPeerConnected ? '✓' : '⚠️'} Backend
+            </Text>
+          </View>
+          <View style={styles.statusBadge}>
+            <Text style={styles.peersText}>
+              👥 {connectedPeersCount} peer{connectedPeersCount !== 1 ? 's' : ''}
+            </Text>
+          </View>
+        </View>
       </View>
 
       <TouchableOpacity 
@@ -407,6 +425,34 @@ const styles = StyleSheet.create({
   roomSubtitle: {
     fontSize: 12,
     color: '#666',
+  },
+  connectionStatusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  connectedText: {
+    color: '#00AA00',
+  },
+  disconnectedText: {
+    color: '#FF8800',
+  },
+  peersText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#007AFF',
   },
   headerRight: {
     width: 50,
