@@ -15,6 +15,7 @@ import {
   Modal,
   Share,
   Clipboard,
+  RefreshControl,
 } from 'react-native';
 import { RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -36,6 +37,7 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
   const [inputText, setInputText] = useState('');
   const [connectedPeersCount, setConnectedPeersCount] = useState(0);
   const [isRootPeerConnected, setIsRootPeerConnected] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [myPublicKey, setMyPublicKey] = useState<string>('');
   const [showRoomInfo, setShowRoomInfo] = useState(false);
   const flatListRef = useRef<FlatList>(null);
@@ -134,6 +136,44 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       unsubscribeRootPeerConnected();
     };
   }, [manager]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+
+    try {
+      if (manager.isRootPeerConnected()) {
+        Alert.alert(
+          'Backend Already Connected',
+          'The backend server is already connected.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        console.log('[ChatScreen] 🔄 Attempting to reconnect to backend...');
+        console.log('[ChatScreen] 📡 Waiting for root peer discovery...');
+        
+        try {
+          // Try to reconnect with 5 second timeout
+          // Note: The worklet is already actively searching for the root peer
+          // on the discovery swarm. This just waits for the connection.
+          await manager.waitForRootPeer(5000);
+          
+          Alert.alert(
+            'Backend Reconnected',
+            'Successfully reconnected to the backend server. Message backup has resumed.',
+            [{ text: 'OK' }]
+          );
+        } catch (error) {
+          Alert.alert(
+            'Backend Unavailable',
+            'Could not connect to the backend server within 5 seconds. Please ensure the server is running.\n\nThe app will continue trying to connect in the background.',
+            [{ text: 'OK' }]
+          );
+        }
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleSendMessage = async () => {
     const text = inputText.trim();
@@ -356,11 +396,23 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
           style={styles.messagesList}
           onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              title="Pull to reconnect backend"
+              tintColor="#007AFF"
+              titleColor="#666"
+            />
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No messages yet</Text>
               <Text style={styles.emptySubtext}>
                 Start the conversation! 💬
+              </Text>
+              <Text style={styles.pullToRefreshHint}>
+                Pull down to reconnect backend if disconnected
               </Text>
             </View>
           }
@@ -566,6 +618,12 @@ const styles = StyleSheet.create({
   emptySubtext: {
     fontSize: 14,
     color: '#BBB',
+  },
+  pullToRefreshHint: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 20,
+    fontStyle: 'italic',
   },
   // Modal styles
   modalOverlay: {

@@ -258,17 +258,53 @@ export class HyperswarmManager {
   }
 
   /**
+   * Manually trigger root peer reconnection
+   * This rejoins the discovery swarm to actively search for the root peer
+   */
+  async reconnectRootPeer(): Promise<{ success: boolean; alreadyConnected?: boolean }> {
+    this.ensureInitialized();
+    
+    console.log('[HyperswarmManager] 🔄 Triggering manual root peer reconnection...');
+    
+    const request = this.rpc!.request(CommandIds[WorkletCommand.RECONNECT_ROOT_PEER]);
+    request.send('');
+    
+    const reply = await request.reply();
+    const response = JSON.parse(b4a.toString(reply));
+    
+    return response;
+  }
+
+  /**
    * Wait for root peer to connect
    * @param timeout - Timeout in milliseconds (default: 5000ms / 5 seconds)
+   * @param triggerReconnect - If true, actively trigger reconnection before waiting (default: true)
    * @throws Error if timeout reached or root peer doesn't connect
    */
-  async waitForRootPeer(timeout: number = 5000): Promise<void> {
+  async waitForRootPeer(timeout: number = 5000, triggerReconnect: boolean = true): Promise<void> {
     if (this.rootPeerConnected) {
       console.log('[HyperswarmManager] ✅ Root peer already connected');
       return;
     }
 
+    // Actively trigger reconnection to refresh discovery
+    if (triggerReconnect) {
+      console.log('[HyperswarmManager] 🔄 Triggering active reconnection...');
+      try {
+        await this.reconnectRootPeer();
+      } catch (error) {
+        console.warn('[HyperswarmManager] ⚠️ Reconnect trigger failed, will still wait:', error);
+      }
+    }
+
     console.log('[HyperswarmManager] ⏳ Waiting for root peer to connect...');
+    console.log('[HyperswarmManager] 📡 Worklet is actively searching on discovery swarm...');
+
+    // Ensure we have a fresh promise (in case the old one was rejected)
+    if (!this.rootPeerConnectPromise || !this.rootPeerConnectResolve) {
+      console.log('[HyperswarmManager] 🔄 Creating new connection promise...');
+      this.createRootPeerConnectPromise();
+    }
 
     const timeoutPromise = new Promise<void>((_, reject) => {
       setTimeout(() => {
@@ -281,6 +317,7 @@ export class HyperswarmManager {
       console.log('[HyperswarmManager] ✅ Root peer connected successfully');
     } catch (error) {
       console.error('[HyperswarmManager] ❌ Failed to connect to root peer:', error);
+      console.log('[HyperswarmManager] 🔍 Worklet will continue searching in background...');
       throw error;
     }
   }

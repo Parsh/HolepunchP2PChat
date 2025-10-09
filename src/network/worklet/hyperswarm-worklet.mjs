@@ -27,6 +27,7 @@ const WorkletCommand = {
   LEAVE_ROOM: 4,
   SEND_MESSAGE: 5,
   REQUEST_SYNC: 6,
+  RECONNECT_ROOT_PEER: 7,
 };
 
 const WorkletEvent = {
@@ -171,6 +172,10 @@ class RPCManager {
           this.handleRequestSync(req, JSON.parse(data));
           break;
         
+        case WorkletCommand.RECONNECT_ROOT_PEER:
+          this.handleReconnectRootPeer(req);
+          break;
+        
         default:
           console.warn('[Worklet] Unknown command:', req.command);
           req.reply(JSON.stringify({ error: 'Unknown command' }));
@@ -292,6 +297,43 @@ class RPCManager {
       req.reply(JSON.stringify({ success: true }));
     } catch (error) {
       console.error('[Worklet] Failed to request sync:', error);
+      req.reply(JSON.stringify({ success: false, error: error.message }));
+    }
+  }
+
+  async handleReconnectRootPeer(req) {
+    try {
+      console.log('[Worklet] 🔄 Manual root peer reconnection requested...');
+      
+      if (state.isConnectedToRootPeer) {
+        console.log('[Worklet] ✅ Already connected to root peer');
+        req.reply(JSON.stringify({ success: true, alreadyConnected: true }));
+        return;
+      }
+
+      // Rejoin the discovery swarm to actively search for root peer
+      const discoveryTopic = crypto.hash(Buffer.from('holepunch-root-peer-discovery'));
+      console.log('[Worklet] 🔍 Rejoining root peer discovery swarm...');
+      
+      // Leave and rejoin to refresh discovery
+      const existingDiscovery = state.rooms.get(discoveryTopic.toString('hex'));
+      if (existingDiscovery) {
+        await existingDiscovery.destroy();
+      }
+
+      // Join fresh
+      const discovery = state.swarm.join(discoveryTopic, {
+        client: true,
+        server: false
+      });
+      
+      state.rooms.set(discoveryTopic.toString('hex'), discovery);
+      await state.swarm.flush();
+
+      console.log('[Worklet] ✅ Rejoined discovery swarm, actively searching for root peer...');
+      req.reply(JSON.stringify({ success: true, searching: true }));
+    } catch (error) {
+      console.error('[Worklet] ❌ Failed to reconnect root peer:', error);
       req.reply(JSON.stringify({ success: false, error: error.message }));
     }
   }

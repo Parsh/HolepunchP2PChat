@@ -15,6 +15,7 @@ export enum WorkletCommand {
   LEAVE_ROOM = 'LEAVE_ROOM',
   SEND_MESSAGE = 'SEND_MESSAGE',
   REQUEST_SYNC = 'REQUEST_SYNC', // Request sync with specific lastIndex
+  RECONNECT_ROOT_PEER = 'RECONNECT_ROOT_PEER', // Manually trigger root peer reconnection
 }
 
 /**
@@ -40,6 +41,7 @@ export const CommandIds = {
   [WorkletCommand.LEAVE_ROOM]: 4,
   [WorkletCommand.SEND_MESSAGE]: 5,
   [WorkletCommand.REQUEST_SYNC]: 6,
+  [WorkletCommand.RECONNECT_ROOT_PEER]: 7,
   
   // Events (Worklet → React Native)
   [WorkletEvent.READY]: 10,

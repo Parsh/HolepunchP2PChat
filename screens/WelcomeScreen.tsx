@@ -24,7 +24,6 @@ interface WelcomeScreenProps {
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isReady, setIsReady] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [savedRooms, setSavedRooms] = useState<SavedRoom[]>([]);
   const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
 
@@ -40,11 +39,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
           setIsInitializing(false);
         });
 
-        // Set up error listener
+        // Set up error listener (just log, don't display in UI)
         const unsubscribeError = manager.onError((event) => {
           console.error('[WelcomeScreen] ❌ Hyperswarm error:', event.error);
-          setError(event.error);
-          setIsInitializing(false);
         });
 
         // Initialize the worklet with a persistent seed
@@ -62,7 +59,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
         };
       } catch (err) {
         console.error('[WelcomeScreen] ❌ Failed to initialize:', err);
-        setError(err instanceof Error ? err.message : 'Failed to initialize');
         setIsInitializing(false);
       }
     };
@@ -188,12 +184,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
         <View style={styles.statusContainer}>
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.statusText}>Initializing P2P network...</Text>
-        </View>
-      )}
-
-      {error && (
-        <View style={[styles.statusContainer, styles.errorContainer]}>
-          <Text style={styles.errorText}>⚠️ {error}</Text>
         </View>
       )}
 
