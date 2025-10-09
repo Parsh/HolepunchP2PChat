@@ -26,6 +26,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedRooms, setSavedRooms] = useState<SavedRoom[]>([]);
+  const [joiningRoomId, setJoiningRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeNetwork = async () => {
@@ -34,14 +35,14 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
         
         // Set up event listener for when worklet is ready
         const unsubscribe = manager.onReady(() => {
-          console.log('[WelcomeScreen] Hyperswarm worklet is ready!');
+          console.log('[WelcomeScreen] ✅ Hyperswarm worklet is ready!');
           setIsReady(true);
           setIsInitializing(false);
         });
 
         // Set up error listener
         const unsubscribeError = manager.onError((event) => {
-          console.error('[WelcomeScreen] Hyperswarm error:', event.error);
+          console.error('[WelcomeScreen] ❌ Hyperswarm error:', event.error);
           setError(event.error);
           setIsInitializing(false);
         });
@@ -49,7 +50,10 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
         // Initialize the worklet with a persistent seed
         const { SeedStorage } = await import('../src/storage/SeedStorage');
         const seed = await SeedStorage.getOrCreateSeed();
+        
+        console.log('[WelcomeScreen] 🚀 Starting initialization with seed...');
         await manager.initialize(seed);
+        console.log('[WelcomeScreen] ⏳ Initialization complete, waiting for READY event from worklet...');
 
         // Cleanup on unmount
         return () => {
@@ -57,7 +61,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
           unsubscribeError();
         };
       } catch (err) {
-        console.error('[WelcomeScreen] Failed to initialize:', err);
+        console.error('[WelcomeScreen] ❌ Failed to initialize:', err);
         setError(err instanceof Error ? err.message : 'Failed to initialize');
         setIsInitializing(false);
       }
@@ -81,6 +85,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
   }, [navigation]);
 
   const handleRoomPress = async (room: SavedRoom) => {
+    // Prevent double-tap: if already joining this or any room, ignore
+    if (joiningRoomId) {
+      console.log('[WelcomeScreen] Already joining a room, ignoring tap');
+      return;
+    }
+
     try {
       // Check if we have the room key
       if (!room.roomKey) {
@@ -97,6 +107,9 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
       // Derive room ID from the stored room key
       const roomId = MessageEncryption.deriveRoomId(room.roomKey);
 
+      // Set joining state to prevent double-tap
+      setJoiningRoomId(roomId);
+
       console.log('[WelcomeScreen] 🔑 Rejoining room with key:', room.roomKey.substring(0, 16) + '...');
       console.log('[WelcomeScreen] 🆔 Derived Room ID:', roomId.substring(0, 16) + '...');
 
@@ -109,9 +122,27 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
         roomId: roomId,
         roomKey: room.roomKey,
       });
+      
+      // Clear joining state after navigation
+      setJoiningRoomId(null);
     } catch (error) {
       console.error('[WelcomeScreen] Error rejoining room:', error);
-      Alert.alert('Error', 'Failed to rejoin room');
+      
+      // Clear joining state on error
+      setJoiningRoomId(null);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      // Check if it's a root peer connection error
+      if (errorMessage.includes('Root peer is not connected') || 
+          errorMessage.includes('Timeout waiting for root peer')) {
+        Alert.alert(
+          'Backend Server Not Connected',
+          'Please ensure the backend server is running and try again.',
+          [{ text: 'OK' }]
+        );
+      }
+      // For other errors, just log them (don't show alert to avoid noise)
     }
   };
 
@@ -179,21 +210,31 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ navigation }) => {
           <FlatList
             data={savedRooms}
             keyExtractor={(item) => item.roomId}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.roomItem}
-                onPress={() => handleRoomPress(item)}
-                onLongPress={() => handleDeleteRoom(item)}
-              >
-                <View style={styles.roomInfo}>
-                  <Text style={styles.roomName}>{item.name || 'Unnamed Room'}</Text>
-                  <Text style={styles.roomMeta}>
-                    {item.isCreator ? '👑 Creator' : '👤 Member'} • {formatDate(item.lastActive || item.createdAt)}
-                  </Text>
-                </View>
-                <Text style={styles.roomArrow}>›</Text>
-              </TouchableOpacity>
-            )}
+            renderItem={({ item }) => {
+              const roomId = MessageEncryption.deriveRoomId(item.roomKey);
+              const isJoining = joiningRoomId === roomId;
+              
+              return (
+                <TouchableOpacity
+                  style={[styles.roomItem, isJoining && styles.roomItemJoining]}
+                  onPress={() => handleRoomPress(item)}
+                  onLongPress={() => handleDeleteRoom(item)}
+                  disabled={isJoining || !!joiningRoomId}
+                >
+                  <View style={styles.roomInfo}>
+                    <Text style={styles.roomName}>{item.name || 'Unnamed Room'}</Text>
+                    <Text style={styles.roomMeta}>
+                      {item.isCreator ? '👑 Creator' : '👤 Member'} • {formatDate(item.lastActive || item.createdAt)}
+                    </Text>
+                  </View>
+                  {isJoining ? (
+                    <ActivityIndicator size="small" color="#007AFF" />
+                  ) : (
+                    <Text style={styles.roomArrow}>›</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            }}
             style={styles.roomsList}
           />
         </View>
@@ -312,6 +353,11 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     borderWidth: 1,
     borderColor: '#E0E0E0',
+  },
+  roomItemJoining: {
+    opacity: 0.6,
+    backgroundColor: '#F0F8FF',
+    borderColor: '#007AFF',
   },
   roomInfo: {
     flex: 1,
