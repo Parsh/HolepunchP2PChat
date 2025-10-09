@@ -34,6 +34,11 @@ export class HyperswarmManager {
   private rpc: RPC | null = null;
   private initialized = false;
   
+  // Root peer connection tracking
+  private rootPeerConnected = false;
+  private rootPeerConnectPromise: Promise<void> | null = null;
+  private rootPeerConnectResolve: (() => void) | null = null;
+  
   // Room key storage for encryption/decryption
   // Map: roomId (public topic) -> roomKey (secret for encryption)
   private roomKeys: Map<string, string> = new Map();
@@ -45,6 +50,8 @@ export class HyperswarmManager {
     peerDisconnected: new Set<PeerDisconnectedListener>(),
     messageReceived: new Set<MessageReceivedListener>(),
     error: new Set<WorkletErrorListener>(),
+    rootPeerConnected: new Set<() => void>(),
+    rootPeerDisconnected: new Set<() => void>(),
   };
 
   private constructor() {
@@ -75,16 +82,26 @@ export class HyperswarmManager {
     try {
       console.log('[HyperswarmManager] Starting worklet...');
       
+      // Create promise for root peer connection
+      this.createRootPeerConnectPromise();
+      
       await this.worklet.start('/app.bundle', bundle, [seed]);
       
       this.setupRPC();
       this.initialized = true;
       
       console.log('[HyperswarmManager] Initialized successfully');
+      console.log('[HyperswarmManager] ⏳ Waiting for root peer connection...');
     } catch (error) {
       console.error('[HyperswarmManager] Initialization failed:', error);
       throw new Error(`Failed to initialize Hyperswarm: ${error.message}`);
     }
+  }
+
+  private createRootPeerConnectPromise(): void {
+    this.rootPeerConnectPromise = new Promise((resolve) => {
+      this.rootPeerConnectResolve = resolve;
+    });
   }
 
   private setupRPC(): void {
@@ -107,10 +124,35 @@ export class HyperswarmManager {
         break;
       
       case CommandIds[WorkletEvent.PEER_CONNECTED]:
+        // Check if this is the root peer
+        if (payload.isRootPeer === true) {
+          console.log('[HyperswarmManager] 🏰 Root peer connected!');
+          this.rootPeerConnected = true;
+          
+          // Resolve the promise if anyone is waiting
+          if (this.rootPeerConnectResolve) {
+            this.rootPeerConnectResolve();
+            this.rootPeerConnectResolve = null;
+          }
+          
+          // Emit root peer connected event
+          this.emitRootPeerEvent('rootPeerConnected');
+        }
         this.emit('peerConnected', payload);
         break;
       
       case CommandIds[WorkletEvent.PEER_DISCONNECTED]:
+        // Check if this is the root peer
+        if (payload.isRootPeer === true) {
+          console.log('[HyperswarmManager] 👋 Root peer disconnected!');
+          this.rootPeerConnected = false;
+          
+          // Create new promise for next connection
+          this.createRootPeerConnectPromise();
+          
+          // Emit root peer disconnected event
+          this.emitRootPeerEvent('rootPeerDisconnected');
+        }
         this.emit('peerDisconnected', payload);
         break;
       
@@ -216,6 +258,41 @@ export class HyperswarmManager {
   }
 
   /**
+   * Wait for root peer to connect
+   * @param timeout - Timeout in milliseconds (default: 5000ms / 5 seconds)
+   * @throws Error if timeout reached or root peer doesn't connect
+   */
+  async waitForRootPeer(timeout: number = 5000): Promise<void> {
+    if (this.rootPeerConnected) {
+      console.log('[HyperswarmManager] ✅ Root peer already connected');
+      return;
+    }
+
+    console.log('[HyperswarmManager] ⏳ Waiting for root peer to connect...');
+
+    const timeoutPromise = new Promise<void>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Timeout waiting for root peer connection. Please ensure the backend server is running.'));
+      }, timeout);
+    });
+
+    try {
+      await Promise.race([this.rootPeerConnectPromise!, timeoutPromise]);
+      console.log('[HyperswarmManager] ✅ Root peer connected successfully');
+    } catch (error) {
+      console.error('[HyperswarmManager] ❌ Failed to connect to root peer:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if root peer is currently connected
+   */
+  isRootPeerConnected(): boolean {
+    return this.rootPeerConnected;
+  }
+
+  /**
    * Join a room with encryption
    * @param roomTopic - Room ID (hash of room key) for P2P discovery
    * @param roomKey - 64-char hex room key for message encryption (not sent to worklet)
@@ -223,6 +300,16 @@ export class HyperswarmManager {
    */
   async joinRoom(roomTopic: string, roomKey: string, lastSyncedIndex: number = 0): Promise<{ success: boolean; alreadyJoined?: boolean }> {
     this.ensureInitialized();
+    
+    // ⚠️ IMPORTANT: Wait for root peer connection before allowing room join
+    if (!this.rootPeerConnected) {
+      console.log('[HyperswarmManager] 🚫 Root peer not connected. Waiting...');
+      try {
+        await this.waitForRootPeer();
+      } catch (error) {
+        throw new Error('Cannot join room: Root peer is not connected. Please ensure the backend server is running and try again.');
+      }
+    }
     
     // Validate room key format
     if (!MessageEncryption.isValidRoomKey(roomKey)) {
@@ -348,6 +435,24 @@ export class HyperswarmManager {
     return () => this.listeners.peerDisconnected.delete(listener);
   }
 
+  /**
+   * Register a listener for root peer connection events
+   * @returns cleanup function to remove the listener
+   */
+  onRootPeerConnected(listener: () => void): () => void {
+    this.listeners.rootPeerConnected.add(listener);
+    return () => this.listeners.rootPeerConnected.delete(listener);
+  }
+
+  /**
+   * Register a listener for root peer disconnection events
+   * @returns cleanup function to remove the listener
+   */
+  onRootPeerDisconnected(listener: () => void): () => void {
+    this.listeners.rootPeerDisconnected.add(listener);
+    return () => this.listeners.rootPeerDisconnected.delete(listener);
+  }
+
   onMessageReceived(listener: MessageReceivedListener): () => void {
     this.listeners.messageReceived.add(listener);
     return () => this.listeners.messageReceived.delete(listener);
@@ -364,16 +469,28 @@ export class HyperswarmManager {
 
   private emit<K extends keyof typeof this.listeners>(
     event: K,
-    payload: any
+    payload?: any
   ): void {
     const listeners = this.listeners[event];
     listeners.forEach((listener) => {
       try {
-        listener(payload);
+        // Root peer events don't take any arguments
+        if (event === 'rootPeerConnected' || event === 'rootPeerDisconnected') {
+          (listener as () => void)();
+        } else {
+          (listener as (payload: any) => void)(payload);
+        }
       } catch (error) {
         console.error(`[HyperswarmManager] Error in ${event} listener:`, error);
       }
     });
+  }
+
+  /**
+   * Helper to emit root peer events (no payload)
+   */
+  private emitRootPeerEvent(event: 'rootPeerConnected' | 'rootPeerDisconnected'): void {
+    this.emit(event);
   }
 
   private ensureInitialized(): void {
