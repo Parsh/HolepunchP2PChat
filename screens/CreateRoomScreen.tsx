@@ -73,7 +73,18 @@ const CreateRoomScreen: React.FC<CreateRoomScreenProps> = ({ navigation }) => {
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      Alert.alert('Error', `Failed to create room: ${errorMessage}`);
+      
+      // Check if it's a root peer connection error
+      if (errorMessage.includes('Root peer is not connected') || 
+          errorMessage.includes('Timeout waiting for root peer')) {
+        Alert.alert(
+          'Backend Server Not Connected',
+          'Please ensure the backend server is running and try again.',
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert('Error', `Failed to create room: ${errorMessage}`);
+      }
     } finally {
       setLoading(false);
     }

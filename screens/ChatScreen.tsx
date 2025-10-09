@@ -88,6 +88,26 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       });
     });
 
+    // Listen for root peer disconnection
+    const unsubscribeRootPeerDisconnected = manager.onRootPeerDisconnected(() => {
+      console.log('[ChatScreen] ⚠️ Root peer disconnected!');
+      Alert.alert(
+        'Backend Server Disconnected',
+        'The backend server has disconnected. Your messages will not be backed up until the server reconnects.',
+        [{ text: 'OK' }]
+      );
+    });
+
+    // Listen for root peer reconnection
+    const unsubscribeRootPeerConnected = manager.onRootPeerConnected(() => {
+      console.log('[ChatScreen] ✅ Root peer reconnected!');
+      Alert.alert(
+        'Backend Server Connected',
+        'The backend server has reconnected. Message backup has resumed.',
+        [{ text: 'OK' }]
+      );
+    });
+
     const updateConnectedPeers = async () => {
       try {
         const peers = await manager.getConnectedPeers();
@@ -104,6 +124,8 @@ const ChatScreen: React.FC<ChatScreenProps> = ({ route, navigation }) => {
       unsubscribePeerConnected();
       unsubscribePeerDisconnected();
       unsubscribeMessage();
+      unsubscribeRootPeerDisconnected();
+      unsubscribeRootPeerConnected();
     };
   }, [manager]);
 
